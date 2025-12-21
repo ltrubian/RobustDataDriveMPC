@@ -27,15 +27,17 @@ end
 
 tmp = sys.C*V*sys.C' + sys.D*sys.D';
 
-G = (sys.A*V*sys.C + sys.B*sys.D')' / (tmp);
+G = (sys.A*V*sys.C + sys.B*sys.D' )' / (tmp); % + sys.B*sys.D'
 
 x_pred = sys.A*x + G * (y - sys.C*x);
 
 % nominal conditional covariance matrix
 P = sys.A*V*sys.A' - G * tmp * G' + sys.B*sys.B';
+% P = (sys.A - G*sys.C) * V * (sys.A - G*sys.C)' ...
+%     + (sys.B - G*sys.D)*(sys.B - G*sys.D)';
 
 % least-favorable covariance matrix
-lambda = LagrangeMultiplier(P, c);
-V_next = inv(P - eye(size(A,1))/lambda );
+lambda = LagrangeMultiplier(P, c, "fast");
+V_next = inv(P - eye(size(sys.A,1))/lambda );
 
 end

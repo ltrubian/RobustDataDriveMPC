@@ -1,4 +1,4 @@
-function lambda2 = LagrangeMultiplier(P, c, type)
+function lambda1 = LagrangeMultiplier(P, c, type)
 %LagrangeMultiplier
 %   lambda2 = LagrangeMultiplier(P, c, type) finds the lagrange multiplier
 %   using secant method
@@ -12,8 +12,8 @@ function lambda2 = LagrangeMultiplier(P, c, type)
 % riportano lo stesso risultato ed è lo zero della funzione (gamma - 2*c)
 arguments
     P    (:,:) double
-    c    (1,1) double
-    type (1,:) string % {mustBeMember(type,["fast", "normal"])} = "normal"
+    c    (1,1) double {mustBePositive(c)}
+    type (1,:) string {mustBeMember(type,["fast", "normal"])} = "normal"
 end
 n = size(P,1);
 e = eig(P);
@@ -30,12 +30,11 @@ lambda1 = lambda0 * 1.1;
 
 gamma0 = gamma(lambda0);
 
-while abs(gamma0) >= 1e-9
+while abs(gamma0) >= 1e-9 && abs(lambda1 - lambda0) >= 1e-9
     gamma1 = gamma(lambda1);
     lambda2 = lambda0 - (gamma0 * (lambda1 - lambda0) / (gamma1 - gamma0));
     % --- next iteration values ---
     lambda0 = lambda1; lambda1 = lambda2;
     gamma0 = gamma1;
 end
-
 end
