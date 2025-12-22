@@ -20,18 +20,18 @@ e = eig(P);
 
 switch type
     case "normal"
-        gamma = @(lam) trace(inv(eye(n) - P/lam) - eye(n)) + log(det(eye(n) - P/lam)) - 2*c;
+        gamfun = @(lam) trace(inv(eye(n) - P/lam) - eye(n)) + log(det(eye(n) - P/lam)) - c;
     case "fast"
-        gamma = @(lam) sum(e./(lam-e)) + log(prod(1-e./lam)) - 2*c;
+        gamfun = @(lam) sum(e./(lam-e)) + log(prod(1-e./lam)) - c;
 end
 
 lambda0 = max(e) * 1.01;
 lambda1 = lambda0 * 1.1;
 
-gamma0 = gamma(lambda0);
+gamma0 = gamfun(lambda0);
 
 while abs(gamma0) >= 1e-9 && abs(lambda1 - lambda0) >= 1e-9
-    gamma1 = gamma(lambda1);
+    gamma1 = gamfun(lambda1);
     lambda2 = lambda0 - (gamma0 * (lambda1 - lambda0) / (gamma1 - gamma0));
     % --- next iteration values ---
     lambda0 = lambda1; lambda1 = lambda2;

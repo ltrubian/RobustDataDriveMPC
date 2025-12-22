@@ -18,26 +18,24 @@ function [x_pred, V_next, G, P, lambda] = RobustKalmanFilter(sys, V, x, y, c)
 % 
 % DEV-STATUS: la funzione non è stata testata in nessun modo
 arguments
-    sys struct
-    V   double
-    x   double
-    y   double
-    c   double
+    sys (1,1) struct
+    V   (:,:) double
+    x   (1,:) double
+    y   (1,:) double
+    c   (1,1) double {mustBePositive(c)}
 end
 
 tmp = sys.C*V*sys.C' + sys.D*sys.D';
 
-G = (sys.A*V*sys.C + sys.B*sys.D' )' / (tmp); % + sys.B*sys.D'
+G = (sys.A*V*sys.C + sys.B*sys.D')' / (tmp);
 
 x_pred = sys.A*x + G * (y - sys.C*x);
 
 % nominal conditional covariance matrix
 P = sys.A*V*sys.A' - G * tmp * G' + sys.B*sys.B';
-% P = (sys.A - G*sys.C) * V * (sys.A - G*sys.C)' ...
-%     + (sys.B - G*sys.D)*(sys.B - G*sys.D)';
 
 % least-favorable covariance matrix
 lambda = LagrangeMultiplier(P, c, "fast");
-V_next = inv(P - eye(size(sys.A,1))/lambda );
+V_next = inv( inv(P)-eye(size(sys.A))/lambda );
 
 end
