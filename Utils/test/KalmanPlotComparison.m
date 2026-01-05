@@ -8,7 +8,7 @@
 %
 % Date:            Agoust 20, 2015
 %--------------------------------------------------------------------------
-addpath("..\")
+addpath("../")
 %%  True model
 rng(30)
 % Process noise variance
@@ -59,6 +59,10 @@ grid on
 figure(Name="lambda")
 plot(1:N, th, 1:N, 1./th1)
 legend("prof", "myfilter")
+
+figure(Name="prediction difference")
+plot(1:N, (abs(xp - xp1)))
+legend("abs(xp - xp1)")
 
 fprintf("x: %d\t", max(log10(abs(xp - xp1))))
 fprintf("G: %d\t", max(abs(G - G)))
