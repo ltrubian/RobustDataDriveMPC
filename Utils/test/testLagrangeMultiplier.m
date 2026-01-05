@@ -38,7 +38,7 @@ classdef testLagrangeMultiplier < matlab.unittest.TestCase
 
         function classSetup1(~)
             % Set up shared state for all tests.
-            addpath("..\")
+            addpath("../")
         end
 
     end
