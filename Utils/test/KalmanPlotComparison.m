@@ -61,7 +61,7 @@ plot(1:N, th, 1:N, 1./th1)
 legend("prof", "myfilter")
 
 figure(Name="prediction difference")
-plot(1:N, (abs(xp - xp1)))
+plot(1:N, ((xp - xp1)))
 legend("abs(xp - xp1)")
 
 fprintf("x: %d\t", max(log10(abs(xp - xp1))))

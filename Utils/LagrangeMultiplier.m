@@ -26,13 +26,13 @@ switch type
 end
 
 lambda0 = max(e) * 1.01;
-lambda1 = lambda0 * 1.1;
+lambda1 = lambda0 * 1.02;
 
 gamma0 = gamfun(lambda0);
 
-while abs(gamma0) >= 1e-9 && abs(lambda1 - lambda0) >= 1e-9
+while abs(gamma0) >= 1e-9 || abs(lambda1 - lambda0) >= 1e-9
     gamma1 = gamfun(lambda1);
-    lambda2 = lambda0 - (gamma0 * (lambda1 - lambda0) / (gamma1 - gamma0));
+    lambda2 = lambda1 - (gamma1 * (lambda1 - lambda0) / (gamma1 - gamma0));
     % --- next iteration values ---
     lambda0 = lambda1; lambda1 = lambda2;
     gamma0 = gamma1;
