@@ -1,4 +1,4 @@
-function [x_pred, V_next, G, P, lambda] = RobustKalmanFilter(sys, V, x, y, c)
+function [x_pred, V_next, G, P_next, lambda] = RobustKalmanFilter(sys, V, x, y, c)
 %RobustKalmanFilter one iteration
 % 
 %   [x_pred, V_next, G, P, lambda] = RobustKalmanFilter(sys, V, x_hat, y, c)
@@ -27,16 +27,15 @@ arguments
 end
 
 tmp = sys.C*V*sys.C' + sys.D*sys.D';
-
-G = (sys.A*V*sys.C + sys.B*sys.D')' / (tmp);
-
+G = (sys.A*V*sys.C' + sys.B*sys.D') / (tmp);
 x_pred = sys.A*x + G * (y - sys.C*x);
 
 % nominal conditional covariance matrix
-P = sys.A*V*sys.A' - G * tmp * G' + sys.B*sys.B';
+% P = sys.A*V*sys.A' - G * tmp * G' + sys.B*sys.B';
+P_next = (sys.A-G*sys.C)*V*(sys.A-G*sys.C)' + (sys.B-G*sys.D)*(sys.B-G*sys.D)';
 
 % least-favorable covariance matrix
-lambda = LagrangeMultiplier(P, c, "fast");
-V_next = inv( inv(P)-eye(size(sys.A))/lambda );
+lambda = LagrangeMultiplier(P_next, c, "fast");
+V_next = inv( inv(P_next)-eye(size(sys.A))/lambda );
 
 end
