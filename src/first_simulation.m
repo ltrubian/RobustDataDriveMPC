@@ -1,6 +1,7 @@
 %% Framework Robust MPC basato su Robust Kalman Filter (RKF)
 clear; clc; close all;
-addpath("utils_first_simulation/")
+addpath("Controller/")
+addpath("RobustKalmanFilter/")
 % --- 1. Inizializzazione del Modello ---
 % Modello Nominale (es. sistema 2D semplificato)
 A = [1.1 1; 0 1]; 
@@ -66,9 +67,6 @@ for t = 1:T
     history_x(:, t) = x_real;
     history_u(t) = u_t;
     fprintf('Step %d: c_stimatol = %.3f, theta = %.3f\n', t, c_hat, theta_t);
-    if any( isapprox(eig(P), 0)) || any(eig(P) < 0 )
-        warning("ahi")
-    end
 end
 
 % Plot Risultati

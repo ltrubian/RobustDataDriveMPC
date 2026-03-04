@@ -26,7 +26,7 @@ switch type
 end
 
 lambda0 = max(e) * 1.01;
-lambda1 = lambda0 * 1.02;
+lambda1 = lambda0 * 1.5;
 
 gamma0 = gamfun(lambda0);
 
