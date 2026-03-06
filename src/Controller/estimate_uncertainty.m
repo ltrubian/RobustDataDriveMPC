@@ -6,6 +6,9 @@ function c_best = estimate_uncertainty(y_hist, u_hist, A, B, C, D, c_candidates,
     for i = 1:num_c
         c_test = c_candidates(i);
         % Reset filtri locali per il test
+
+        % TODO: implement warm start instead of resetting the state
+
         x_tmp = [0;0]; V_tmp = eye(2)*0.1;
         total_err = 0;
         
