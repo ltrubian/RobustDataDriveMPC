@@ -15,7 +15,7 @@ B_real = [0.48; 1.05];
 C_real = C;
 
 % Parametri di Simulazione
-T = 200;           % Tempo totale
+T = 100;           % Tempo totale
 N = 5;            % Orizzonte MPC
 c_candidates = linspace(0.01, 0.5, 10); % Set di possibili valori per c
 decay_rate = 0.9; % Fattore di decadimento per stima c
