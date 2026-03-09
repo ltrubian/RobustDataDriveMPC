@@ -38,6 +38,8 @@ c_hat = c_candidates(1); % Valore iniziale
 % --- 5. Loop Principale di Simulazione ---
 history_x = zeros(2, T);
 history_u = zeros(1, T);
+history_x_hat = zeros(2, T);
+history_y_hat = zeros(1, T);
 
 for t = 1:T
     tic;
@@ -63,6 +65,12 @@ for t = 1:T
     % E. Esecuzione Robust Kalman Filter (Punto 2 dei requisiti)
     [x_hat, P, V, theta_t] = robust_kalman_step(x_hat, V, y_t, u_t, A, B, C, D_noise, c_hat);
     
+    % Salvataggio della stima dello stato
+    history_x_hat(:, t) = x_hat;
+
+    % Salvataggio stima uscita
+    history_y_hat(t) = C * x_hat; 
+
     % Salvataggio dati
     history_x(:, t) = x_real;
     history_u(t) = u_t;
@@ -71,8 +79,24 @@ end
 
 % Plot Risultati
 figure;
-subplot(2,1,1); plot(history_x(1,:)); hold on; plot(y_ref, '--r'); title('Tracking Uscita');
-subplot(2,1,2); stairs(history_u); title('Ingresso di Controllo u');
+
+subplot(3,1,1); 
+plot(history_x(1,:)); 
+hold on; 
+plot(history_x_hat(1,:)); 
+legend('True State','RKF Estimate');
+title('True VS Estimated States');
+
+subplot(3,1,2); 
+plot(y_history(1,:));
+hold on;
+plot(history_y_hat(1,:));
+legend('True Output','RKF Estimate');
+title('True VS Estimated Output');
+
+subplot(3,1,3); 
+stairs(history_u); 
+title('Ingresso di Controllo u');
 
 
 
