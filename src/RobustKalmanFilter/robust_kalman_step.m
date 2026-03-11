@@ -11,8 +11,8 @@ function [x_next, P_next, V_next, lambda] = robust_kalman_step(x_hat, V_t, y_t, 
     % Prof's formulation   P_next = A * V_t * A' + B * B' - G_t * Ry * G_t';
     P_next = (A-G_t*C) * V_t * (A-G_t*C)' + (B-G_t*D) * (B-G_t*D)';
 
-    % 4. Risoluzione numerica per theta (Bisezione)
-    % Cerchiamo theta tale che gamma(P_next, theta) = c
+    % 4. Risoluzione numerica per lambda (Bisezione)
+    % Cerchiamo theta tale che gamma(P_next, lambda) = c
 
     % --- Vincolo di Ammissibilità ---
     % Per garantire che la covarianza robusta V = (P^-1 - theta*I)^-1 sia definita positiva,
@@ -20,27 +20,9 @@ function [x_next, P_next, V_next, lambda] = robust_kalman_step(x_hat, V_t, y_t, 
     % minimo di P^-1, ovvero: theta < 1/lambda_max(P). Oltre questo limite, 
     % l'incertezza stimata "esplode", rendendo il gioco minimax non risolvibile 
     % e il filtro numericamente instabile (varianza negativa).
-    
-    % max_eig_P = max(eig(P_next));
-    % theta_max = 1 / (max_eig_P + 1e-6);
-    % theta_min = 0;
-    
-    % Metodo della bisezione
-    % for i = 1:50
-    %     theta_mid = (theta_min + theta_max) / 2;
-    %     val = calculate_gamma(P_next, theta_mid);
-    %     if val < c
-    %         theta_min = theta_mid;
-    %     else
-    %         theta_max = theta_mid;
-    %     end
-    % end
-    % theta = theta_min;
-
     lambda = LagrangeMultiplier(P_next, c, "fast");
     
     % 5. Calcolo della covarianza distorta V_next
     % V = (P^-1 - theta*I)^-1 
-    % V_next = inv(inv(P_next) - theta * eye(size(P_next)));
     V_next = inv( inv(P_next)-eye(size(A))/lambda );
 end
