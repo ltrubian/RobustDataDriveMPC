@@ -1,5 +1,6 @@
 %% Framework Robust MPC basato su Robust Kalman Filter (RKF)
 clear; clc; close all;
+rng(0);
 addpath("Controller/")
 addpath("RobustKalmanFilter/")
 % --- 1. Inizializzazione del Modello ---
