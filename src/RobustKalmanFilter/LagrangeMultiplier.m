@@ -20,7 +20,7 @@ e = eig(P);
 
 switch type
     case "normal"
-        gamfun = @(lam) trace(inv(eye(n) - P/lam) - eye(n)) + log(det(eye(n) - P/lam)) - c;
+        gamfun = @(lam) 0.5*trace(inv(eye(n) - P/lam) - eye(n)) + 0.5*log(det(eye(n) - P/lam)) - c;
     case "fast"
         gamfun = @(lam) sum(e./(lam-e)) + log(prod(1-e./lam)) - c;
 end
