@@ -55,7 +55,8 @@ classdef testRobustKalmanFilter < matlab.unittest.TestCase
 
             % Exercise the function RobustKalmanFilter
             for k=1:T
-                [x(k+1,:), V(:,:,k+1), G(:,:,k+1), P(:,:,k+1), th(k)] = RobustKalmanFilter(testCase.sys, V1(:,:,k), x1(k,:), testCase.y(k,:), c);
+                [x(k+1,:), V(:,:,k+1), G(:,:,k+1), P(:,:,k+1), th(k)] = ...
+                    RobustKalmanFilter(testCase.sys, V1(:,:,k), x1(k,:), testCase.y(k,:), [0;0], c);
                 [x1(k+1,:), V1(:,:,k+1), G1(:,:,k+1), P1(:,:,k+1), th1(k)] = ...
                     rkiteration(testCase.sys.A,testCase.sys.B, ...
                     testCase.sys.C,testCase.sys.D,V1(:,:,k),0,c*2,x1(k,:),testCase.y(k,:));
@@ -80,7 +81,8 @@ classdef testRobustKalmanFilter < matlab.unittest.TestCase
 
             % Exercise the function RobustKalmanFilter
             for k=1:T
-                [x(k+1,:), V(:,:,k+1), G(:,:,k+1), P(:,:,k+1), th(k)] = RobustKalmanFilter(testCase.sys, V(:,:,k), x(k,:), testCase.y(k,:), c);
+                [x(k+1,:), V(:,:,k+1), G(:,:,k+1), P(:,:,k+1), th(k)] = ...
+                    RobustKalmanFilter(testCase.sys, V(:,:,k), x(k,:), testCase.y(k,:), [0;0], c);
                 [x1(k+1,:), V1(:,:,k+1), G1(:,:,k+1), P1(:,:,k+1), th1(k)] = ...
                     rkiteration(testCase.sys.A,testCase.sys.B, ...
                     testCase.sys.C,testCase.sys.D,V1(:,:,k),0,c*2,x1(k,:),testCase.y(k,:));

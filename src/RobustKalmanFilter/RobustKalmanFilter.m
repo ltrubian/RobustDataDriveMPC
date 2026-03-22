@@ -1,4 +1,4 @@
-function [x_pred, V_next, G, P_next, lambda] = RobustKalmanFilter(sys, V, x, y, c)
+function [x_pred, V_next, G, P_next, lambda] = RobustKalmanFilter(sys, V, x, y, u, c)
 %RobustKalmanFilter one iteration
 % 
 %   [x_pred, V_next, G, P, lambda] = RobustKalmanFilter(sys, V, x_hat, y, c)
@@ -9,6 +9,7 @@ function [x_pred, V_next, G, P_next, lambda] = RobustKalmanFilter(sys, V, x, y, 
 %   V:      least-favorable covariance matrix
 %   x:      current state
 %   y:      current output
+%   u:      current input of the system
 %   c:      radius of the ambiguity set
 % OUTPUT
 %   x_pred: prediction
@@ -21,14 +22,15 @@ function [x_pred, V_next, G, P_next, lambda] = RobustKalmanFilter(sys, V, x, y, 
 arguments
     sys (1,1) struct
     V   (:,:) double
-    x   (1,:) double
-    y   (1,:) double
+    x   (:,1) double
+    y   (:,1) double
+    u   (:,1) double
     c   (1,1) double {mustBePositive(c)}
 end
 
 tmp = sys.C*V*sys.C' + sys.D*sys.D';
 G = (sys.A*V*sys.C' + sys.B*sys.D') / (tmp);
-x_pred = sys.A*x + G * (y - sys.C*x);
+x_pred = sys.A*x + G * (y - sys.C*x) + sys.B * u;
 
 % nominal conditional covariance matrix
 % P = sys.A*V*sys.A' - G * tmp * G' + sys.B*sys.B';
