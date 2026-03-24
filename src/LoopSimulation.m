@@ -80,7 +80,7 @@ for t = 1:steps_sim
         [filt.x_pred(:,t+1), filt.V(:,:,t+1), ~, filt.P(:,:,t+1), filt.lambda(1,t+1)] = ...
             RobustKalmanFilter(model_con, ...
             filters(c_index(t)).V(:,:,t), ...      % all the filters use what the controller
-            filters(c_index(t)).x_pred(:,:,t), ... % has determined to be the best option
+            filters(c_index(t)).x_pred(:,t), ... % has determined to be the best option
             simY(:,t), simU(:,t), filt.c);
     end
     cpuT(k) = toc;
