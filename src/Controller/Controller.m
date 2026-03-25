@@ -101,9 +101,8 @@ end
 
 function err = past_prediction_error(y, filter, C, t, L, beta)
 % with this function the filter uses the prediction it has done at that
-% time. that prediction was not computed starting from its own prediction
-% but from the "best" prediction that the controller at the previous time
-% instant: CROSS aproach
+% time. that prediction was already computed starting from its own prediction
+% parallel approach
 err = 0;
 for k=max(t-L, 1):(t-1)
     err = err * beta + norm(y(k) - C * filter.x_pred(k),2)^2;

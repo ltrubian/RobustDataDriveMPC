@@ -14,10 +14,10 @@ m = size(model_sim.B,2);
 
 %   model_con:  nominal startgin model used by MPC
 model_con.A = [1.15 1; 0.01 1];
-model_con.B = [0.48; 1.5];
+model_con.B = [0.48; 1.05];
 model_con.C = [0.99 0];
 model_con.D = 0;
-model_con.u_min = -10; model_con.u_max = 10;
+model_con.u_min = -2; model_con.u_max = 2;
 
 %   steps_sim:  number of step to simulate
 steps_sim = 100;
@@ -26,17 +26,17 @@ steps_sim = 100;
 init_con = [1; 0];
 
 %   reference:  reference signal
-reference = ones(1, steps_sim) * 1;
+reference = ones(1, steps_sim) * 5;
 
 %   set_c:      set of hyperparamter 'c' to choose from
-set_c = logspace(-10, -1, 10);
+set_c = logspace(-6, -3, 10);
 
 % NAMED-VALUE INPUTS:
 %   con_params:
 %       N:      prediction horizon of MPC
-con_params.N = 10;
+con_params.N = 5;
 %       L:      time windows relevant for estimation
-con_params.L = 5;
+con_params.L = 10;
 %       beta:   forgetting factor
 con_params.beta = 0.9;
 
@@ -82,6 +82,8 @@ subplot(3,1,2);
 plot(simY(1,:));
 hold on;
 plot(y_hat(1,:));
+hold on;
+plot(reference);
 legend('True Output','RKF Estimate');
 title('True VS Estimated Output');
 
