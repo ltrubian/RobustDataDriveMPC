@@ -15,7 +15,8 @@ m = size(model_sim.B,2);
 %   model_con:  nominal startgin model used by MPC
 model_con.A = [1.15 1; 0.01 1];
 model_con.B = [0.48; 1.05];
-model_con.C = [0.99 1];
+model_con.C = [0.99 0];
+model_con.D = 0;
 model_con.u_min = -2; model_con.u_max = 2;
 
 %   steps_sim:  number of step to simulate
@@ -40,12 +41,13 @@ con_params.L = 5;
 con_params.beta = 0.9;
 
 %% SIMULATION OF THE WHOLE SYSTEM
-[simX, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
+[simX, simY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
     steps_sim, init_con, reference, set_c', L=con_params.L, N=con_params.N, beta=con_params.beta);
 
 %% report and analysis
 % OUTPUT OF THE SIMULATION:
 %   simX:       simulated states
+%   simY:       simulated output
 %   simU:       controlled input
 %   cpuT:       cpu time of the controller
 %   filters:    struct with the dynamincs of the set of filters

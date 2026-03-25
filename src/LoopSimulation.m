@@ -1,4 +1,4 @@
-function [simX, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
+function [simX, simY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
     steps_sim, init_con, reference, set_c, con_params)
 %LOOPSIMULATION Simulate cloosed-loop system
 %
@@ -20,6 +20,7 @@ function [simX, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_
 %
 % OUTPUT:
 %   simX:       simulated states
+%   simY:       simulated output
 %   simU:       controlled input
 %   cpuT:       cpu time of the controller
 %   filters:    struct with the dynamincs of the set of filters
@@ -61,7 +62,7 @@ filters = repmat(struct("c", 1, ...
     "x_pred", zeros(n,steps_sim+1)), ...     % prediction initial estimate
     size(set_c,1),1);
 % initialize values of c
-for i = size(set_c,1)
+for i=1:size(set_c,1)
     filters(i,1).c = set_c(i);
 end
 % sequence of the (indexes) tollerances selected by the controller
@@ -78,19 +79,23 @@ for t = 1:steps_sim
         L=con_params.L, N=con_params.N, beta=con_params.beta);
 
     % 2) update filters prediction of the next state
-    for filt=filters
-        [filt.x_pred(:,t+1), filt.V(:,:,t+1), ~, filt.P(:,:,t+1), filt.lambda(1,t+1)] = ...
+    for ff=1:size(set_c,1)
+        [filters(ff).x_pred(:,t+1), filters(ff).V(:,:,t+1), ~, filters(ff).P(:,:,t+1), filters(ff).lambda(1,t+1)] = ...
             RobustKalmanFilter(model_con, ...
             filters(c_index(t)).V(:,:,t), ...      % all the filters use what the controller
             filters(c_index(t)).x_pred(:,t), ...   % has determined to be the best option
-            simY(:,t), simU(:,t), filt.c);
+            simY(:,t), simU(:,t), filters(ff).c);
     end
-    cpuT(k) = toc;
+    cpuT(t) = toc;
 
     %% Simulate the system
     % at the moment the matrix B is the same for the input and the noise.
     % This is NOT in general the case
     simX(:,t+1) = model_sim.A * simX(:,t) + ...
-        model_sim.B * simU(:,t) + model_sim.B * randn(n,m);
+        model_sim.B * simU(:,t) +  randn(n,m);
+
+    fprintf('\rIt: %3d/%3d  CPU time: %2.2f TOTAL time: %3.2f pred err: %3.3f', ...
+        t, steps_sim, cpuT(t), sum(cpuT), norm(filters(c_index(t)).x_pred(:,t) - simX(:,t) ,2));
 end
+fprintf("\n");
 end
