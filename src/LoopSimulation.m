@@ -1,4 +1,4 @@
-function [simX, simU, cpuT, filters] = LoopSimulation(model_sim, model_con, ...
+function [simX, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
     steps_sim, ini_con, reference, set_c, con_params)
 %LOOPSIMULATION Simulate cloosed-loop system
 %
@@ -23,6 +23,7 @@ function [simX, simU, cpuT, filters] = LoopSimulation(model_sim, model_con, ...
 %   simU:       controlled input
 %   cpuT:       cpu time of the controller
 %   filters:    struct with the dynamincs of the set of filters
+%   c_index:    the sequence of c's selected by the controller
 %
 % DEV-STATUS:
 %   NEVER RUN
@@ -64,11 +65,11 @@ for i = length(set_c)
     filters(i).c = set_c(i);
 end
 % sequence of the (indexes) tollerances selected by the controller
-c_index = ones(1,steps_sim);
+c_index = ones(steps_sim,1);
 
 for t = 1:steps_sim
     %% Output of the system
-    simY(:,t) = ComputeOutput(sys, simX(:,t));
+    simY(:,t) = model_sim.C * simX(:,t) + model_sim.D * randn(p,m);
 
     %% Controller and Filter:
     tic;
@@ -86,6 +87,9 @@ for t = 1:steps_sim
     cpuT(k) = toc;
 
     %% Simulate the system
-    simX(:,t+1) = Simulate(model_sim, simX(:,t), simU(:,t));
+    % at the moment the matrix B is the same for the input and the noise.
+    % This is NOT in general the case
+    simX(:,t+1) = model_sim.A * simX(:,t) + ...
+        model_sim.B * simU(:,t) + model_sim.B * randn(n,m);
 end
 end

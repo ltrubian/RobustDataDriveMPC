@@ -44,14 +44,14 @@ options = optimoptions('fmincon', 'Display', 'off');
 optimal.values = zeros(n_filts);
 optimal.u = zeros(m, n_filts);
 
-for ff=1:length(filters)
+for ff=1:n_filts
     filt = filters(ff);
 
     %% MPC controller step
     u_init = zeros(N, 1);
     cost_func = @(u_seq) mpc_cost(u_seq, filt.x_pred(:,t), filt.P(:,:,t), ...
         model_con.A, model_con.B, model_con.C, con_params.N, ...
-        reference(t:min(t+con_params.N-1, length(reference))), filt.lambda(t));
+        reference(t:min(t+con_params.N-1, end)), filt.lambda(t));
 
     % WARNING: non ho la minima idea di come rendere i vincoli di questa
     % funzione validi per input u che siano vettori. OPS
@@ -86,7 +86,7 @@ C = C / distortion;
 for k = 1:N
     % Prediction
     y_k = C * x_k;
-    ref = y_ref(min(k, length(y_ref)));
+    ref = y_ref(min(k, end));
 
     % Costo: Tracking + Energia ingresso
     J = J + norm(y_k - ref)^2 + 0.1 * u_seq(k)^2;
