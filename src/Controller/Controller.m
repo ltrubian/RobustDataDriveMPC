@@ -27,7 +27,7 @@ arguments
     model_con   (1,1) struct
     reference   (:,:) double
     simY        (:,:) double
-    filters     (:,1) struct
+    filters     (:,:) struct
     t           (1,1) {mustBeInteger(t)}
     con_params.N    (1,1) {mustBeInteger(con_params.N)}
     con_params.L    (1,1) {mustBeInteger(con_params.L)}
@@ -41,14 +41,15 @@ assert(m == 1, "the call fmincon for vectorial input is NOT yet ready")
 options = optimoptions('fmincon', 'Display', 'off');
 
 % store optimal results
-optimal.values = zeros(n_filts);
+optimal.values = zeros(n_filts,1);
 optimal.u = zeros(m, n_filts);
 
 for ff=1:n_filts
     filt = filters(ff);
 
     %% MPC controller step
-    u_init = zeros(N, 1);
+    assert( t <= size(filt.x_pred,2) )
+    u_init = zeros(con_params.N, 1);
     cost_func = @(u_seq) mpc_cost(u_seq, filt.x_pred(:,t), filt.P(:,:,t), ...
         model_con.A, model_con.B, model_con.C, con_params.N, ...
         reference(t:min(t+con_params.N-1, end)), filt.lambda(t));
@@ -79,9 +80,11 @@ J = 0;
 x_k = x0;
 
 % Least Favorable Model construction
-distortion = (eye(size(A)) - P/lambda);
-A = distortion \ A;
-C = C / distortion;
+if not(isapprox(lambda,0))
+    distortion = (eye(size(A)) - P/lambda);
+    A = distortion \ A;
+    C = C / distortion;
+end
 
 for k = 1:N
     % Prediction

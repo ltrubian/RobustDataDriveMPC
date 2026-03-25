@@ -1,5 +1,5 @@
 function [simX, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
-    steps_sim, ini_con, reference, set_c, con_params)
+    steps_sim, init_con, reference, set_c, con_params)
 %LOOPSIMULATION Simulate cloosed-loop system
 %
 %       <usage here>
@@ -32,9 +32,9 @@ arguments
     model_sim   (1,1) struct
     model_con   (1,1) struct
     steps_sim   (1,1) double {mustBeInteger(steps_sim)}
-    ini_con     (:,1) double
+    init_con    (:,1) double
     reference   (:,:) double
-    set_c       (1,:) double
+    set_c       (:,1) double
     con_params.N    (1,1) double = 20
     con_params.L    (1,1) double = 10
     con_params.beta (1,1) double = 0.999
@@ -51,18 +51,18 @@ simU = zeros(m, steps_sim);
 cpuT = zeros(size(simU,1), 1);
 
 % initialize the simulation initial information
-simX(:,1) = ini_con;
+simX(:,1) = init_con;
 
 %% Filters collection of information
 filters = repmat(struct("c", 1, ...
     "P", repmat(eye(n),1,1,steps_sim+1), ... % nominal initial covariance  = I
     "V", repmat(eye(n),1,1,steps_sim+1), ... % perturbed initial covariance= I
-    "lambda", ones(1,steps_sim+1), ...       % lagrange multipliers
+    "lambda", zeros(1,steps_sim+1), ...       % lagrange multipliers
     "x_pred", zeros(n,steps_sim+1)), ...     % prediction initial estimate
     size(set_c,1),1);
 % initialize values of c
-for i = length(set_c)
-    filters(i).c = set_c(i);
+for i = size(set_c,1)
+    filters(i,1).c = set_c(i);
 end
 % sequence of the (indexes) tollerances selected by the controller
 c_index = ones(steps_sim,1);
@@ -74,14 +74,15 @@ for t = 1:steps_sim
     %% Controller and Filter:
     tic;
     % 1) update input of the system
-    [simU(t,:), c_index(t)] = Controller(model_con, reference, simY, filters, t, con_params);
+    [simU(:,t), c_index(t)] = Controller(model_con, reference, simY, filters, t, ...
+        L=con_params.L, N=con_params.N, beta=con_params.beta);
 
     % 2) update filters prediction of the next state
     for filt=filters
         [filt.x_pred(:,t+1), filt.V(:,:,t+1), ~, filt.P(:,:,t+1), filt.lambda(1,t+1)] = ...
             RobustKalmanFilter(model_con, ...
             filters(c_index(t)).V(:,:,t), ...      % all the filters use what the controller
-            filters(c_index(t)).x_pred(:,t), ... % has determined to be the best option
+            filters(c_index(t)).x_pred(:,t), ...   % has determined to be the best option
             simY(:,t), simU(:,t), filt.c);
     end
     cpuT(k) = toc;
