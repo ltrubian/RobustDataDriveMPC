@@ -41,14 +41,13 @@ assert(m == 1, "the call fmincon for vectorial input is NOT yet ready")
 options = optimoptions('fmincon', 'Display', 'off');
 
 % store optimal results
-optimal.values = zeros(n_filts,1);
-optimal.u = zeros(m, n_filts);
+optimal_values = zeros(n_filts,1);
+optimal_u = zeros(m, n_filts);
 
 for ff=1:n_filts
     filt = filters(ff);
 
     %% MPC controller step
-    assert( t <= size(filt.x_pred,2) )
     u_init = zeros(con_params.N, 1);
     cost_func = @(u_seq) mpc_cost(u_seq, filt.x_pred(:,t), filt.P(:,:,t), ...
         model_con.A, model_con.B, model_con.C, con_params.N, ...
@@ -56,21 +55,21 @@ for ff=1:n_filts
 
     % WARNING: non ho la minima idea di come rendere i vincoli di questa
     % funzione validi per input u che siano vettori. OPS
-    [u_tmp, optimal.values(ff) ] = fmincon(cost_func, u_init, [], [], [], [], ...
+    [u_tmp, optimal_values(ff) ] = fmincon(cost_func, u_init, [], [], [], [], ...
         model_con.u_min*ones(con_params.N,1), model_con.u_max*ones(con_params.N,1), [], options);
     % e proprio per questo non so come modificare la seguente riga per
     % input vettoriali. HELP
-    optimal.u(:,ff) = u_tmp(1);
+    optimal_u(:,ff) = u_tmp(1);
 
     %% uncertainty evaluation for each filter
     % computation of the following kind at the end
-    optimal.values(ff) = optimal.values(ff) + past_prediction_error( ...
+    optimal_values(ff) = optimal_values(ff) + past_prediction_error( ...
         simY, filt, model_con.C, t, con_params.L, con_params.beta);
 end
 
 % minimization of the combined measures
-[~, c_index] = min(optimal.values);
-simU = optimal.u(:,c_index);
+[~, c_index] = min(optimal_values);
+simU = optimal_u(:,c_index);
 
 end
 
@@ -107,6 +106,6 @@ function err = past_prediction_error(y, filter, C, t, L, beta)
 % instant: CROSS aproach
 err = 0;
 for k=max(t-L, 1):(t-1)
-    err = err * beta + norm(y(k) - C * filter.x_pred(k),2);
+    err = err * beta + norm(y(k) - C * filter.x_pred(k),2)^2;
 end
 end
