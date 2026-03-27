@@ -1,6 +1,6 @@
 addpath("Controller/")
 addpath("RobustKalmanFilter/")
-
+rng(1)
 %% DEFINITION OF VARIABLES FOR THE SIMULATION
 %   model_sim:  model to simulate
 model_sim.A = [1.1 1; 0 1];
@@ -18,9 +18,14 @@ model_con.B = [0.48; 1.05];
 model_con.C = [0.99 0];
 model_con.D = 0;
 model_con.u_min = -2; model_con.u_max = 2;
+model_con.x_min = [-inf; -inf];
+model_con.x_max = [+inf; +inf];
+model_con.weights.Q = 1;
+model_con.weights.Pf = 1;
+model_con.weights.R = 0.01;
 
 %   steps_sim:  number of step to simulate
-steps_sim = 100;
+steps_sim = 300;
 
 %   init_con:   initial condition
 init_con = [1; 0];
@@ -34,7 +39,8 @@ set_c = logspace(-6, -3, 10);
 % NAMED-VALUE INPUTS:
 %   con_params:
 %       N:      prediction horizon of MPC
-con_params.N = 5;
+con_params.N = 10;
+reference = [reference,repmat(reference(end),1,con_params.N)];
 %       L:      time windows relevant for estimation
 con_params.L = 10;
 %       beta:   forgetting factor
@@ -83,7 +89,7 @@ plot(simY(1,:));
 hold on;
 plot(y_hat(1,:));
 hold on;
-plot(reference);
+plot(reference(1:steps_sim));
 legend('True Output','RKF Estimate');
 title('True VS Estimated Output');
 

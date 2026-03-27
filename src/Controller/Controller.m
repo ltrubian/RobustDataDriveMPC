@@ -19,9 +19,6 @@ function [simU, c_index] = Controller(model_con, reference, simY, filters, t, co
 % OUTPUT:
 %   simU:       input of the system
 %   c_index:    index of the best value of c according the whole controller
-%
-% DEV-STATUS:
-%   NEVER RUN
 
 arguments
     model_con   (1,1) struct
@@ -47,20 +44,33 @@ optimal_u = zeros(m, n_filts);
 for ff=1:n_filts
     filt = filters(ff);
 
-    %% MPC controller step
-    u_init = zeros(con_params.N, 1);
-    cost_func = @(u_seq) mpc_cost(u_seq, filt.x_pred(:,t), filt.P(:,:,t), ...
-        model_con.A, model_con.B, model_con.C, con_params.N, ...
-        reference(t:min(t+con_params.N-1, end)), filt.lambda(t));
-
-    % WARNING: non ho la minima idea di come rendere i vincoli di questa
-    % funzione validi per input u che siano vettori. OPS
-    [u_tmp, optimal_values(ff) ] = fmincon(cost_func, u_init, [], [], [], [], ...
-        model_con.u_min*ones(con_params.N,1), model_con.u_max*ones(con_params.N,1), [], options);
-    % e proprio per questo non so come modificare la seguente riga per
-    % input vettoriali. HELP
-    optimal_u(:,ff) = u_tmp(1);
-
+    %% MPC controller step fmincon implementation
+    % %%%%%%%%%%% start %%%%%%%%%%%
+    % u_init = zeros(con_params.N, 1);
+    % cost_func = @(u_seq) mpc_cost(u_seq, filt.x_pred(:,t), filt.P(:,:,t), ...
+    %     model_con.A, model_con.B, model_con.C, con_params.N, ...
+    %     reference(t:min(t+con_params.N-1, end)), filt.lambda(t));
+    %
+    % % WARNING: non ho la minima idea di come rendere i vincoli di questa
+    % % funzione validi per input u che siano vettori. OPS
+    % [u_tmp, optimal_values(ff) ] = fmincon(cost_func, u_init, [], [], [], [], ...
+    %     model_con.u_min*ones(con_params.N,1), model_con.u_max*ones(con_params.N,1), [], options);
+    % % e proprio per questo non so come modificare la seguente riga per
+    % % input vettoriali. HELP
+    % optimal_u(:,ff) = u_tmp(1);
+    % %%%%%%%%%%% end %%%%%%%%%%%
+    %% MPC quadprog implementation
+    % %%%%%%%%%%% start %%%%%%%%%%%
+    A = model_con.A; C = model_con.C;
+    if not(isapprox(filt.lambda(t),0))
+        distortion = (eye(size(model_con.A)) - filt.P(:,:,t)/filt.lambda(t));
+        A = distortion \ model_con.A;
+        C = model_con.C / distortion;
+    end
+    [optimal_u(:,ff), optimal_values(ff)] = MPCOptimizer(filt.x_pred(:,t), ...
+        A,model_con.B,C, model_con.weights, con_params.N, reference(:,t:t+con_params.N-1), ...
+        model_con.x_min, model_con.x_max,model_con.u_min,model_con.u_max);
+    % %%%%%%%%%%% end %%%%%%%%%%%
     %% uncertainty evaluation for each filter
     % computation of the following kind at the end
     optimal_values(ff) = optimal_values(ff) + past_prediction_error( ...
