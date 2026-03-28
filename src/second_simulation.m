@@ -39,7 +39,7 @@ set_c = logspace(-6, -3, 10);
 % NAMED-VALUE INPUTS:
 %   con_params:
 %       N:      prediction horizon of MPC
-con_params.N = 5;
+con_params.N = 20;
 % update reference: last value is repeated so that the controller has
 % always enough preview
 reference = [reference,repmat(reference(end),1,con_params.N)];
@@ -47,9 +47,11 @@ reference = [reference,repmat(reference(end),1,con_params.N)];
 con_params.L = 10;
 %       beta:   forgetting factor
 con_params.beta = 0.9;
+%       lfm:    apply Least-Favorable Model (true/false)
+con_params.lfm = true;
 %       steps:  1 to combine estimation and controller;
 %               2 to have estimation minimizing before and then controller
-con_params.steps = 2;
+con_params.steps = 1;
 %       mpc:    which matlab function to use for the MPC controller
 %               fmincon: more readble but slow (not suitable for big N)
 %               quadprog: fast quadratic solver for sparse mpc
@@ -60,7 +62,7 @@ con_params.mpc = "quadprog";
 [simX, simY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
     steps_sim, init_con, reference, set_c', ...
     L=con_params.L, N=con_params.N, beta=con_params.beta, ...
-    steps=con_params.steps, mpc=con_params.mpc);
+    lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc);
 
 %% report and analysis
 % OUTPUT OF THE SIMULATION:

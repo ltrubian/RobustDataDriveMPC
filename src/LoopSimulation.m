@@ -17,6 +17,7 @@ function [simX, simY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, 
 %       N:      prediction horizon of MPC
 %       L:      time windows relevant for estimation
 %       beta:   forgetting factor
+%       lfm:    apply Least-Favorable Model (true/false)
 %       steps:  1 to combine estimation and controller;
 %               2 to have estimation minimizing before and then controller
 %       mpc:    which matlab function to use for the MPC controller
@@ -42,6 +43,7 @@ arguments
     con_params.N        (1,1) double
     con_params.L        (1,1) double
     con_params.beta     (1,1) double
+    con_params.lfm      (1,1) logical
     con_params.steps    (1,1) double
     con_params.mpc      (1,1) string
 end
@@ -82,7 +84,7 @@ for t = 1:steps_sim
     % 1) update input of the system
     [simU(:,t), c_index(t)] = Controller(model_con, reference, simY, filters, t, ...
         L=con_params.L, N=con_params.N, beta=con_params.beta, ...
-        steps=con_params.steps, mpc=con_params.mpc);
+        lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc);
 
     % 2) update filters prediction of the next state
     for ff=1:size(set_c,1)

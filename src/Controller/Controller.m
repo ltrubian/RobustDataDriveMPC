@@ -15,6 +15,7 @@ function [simU, c_index] = Controller(model_con, reference, simY, filters, t, co
 %       N:      prediction horizon of MPC
 %       L:      time windows relevant for estimation
 %       beta:   forgetting factor
+%       lfm:    apply Least-Favorable Model (true/false)
 %       steps:  1 to combine estimation and controller;
 %               2 to have estimation minimizing before and then controller
 %       mpc:    which matlab function to use for the MPC controller
@@ -35,6 +36,7 @@ arguments
     con_params.N        (1,1) double {mustBeInteger(con_params.N)}
     con_params.L        (1,1) double {mustBeInteger(con_params.L)}
     con_params.beta     (1,1) double {mustBeBetween(con_params.beta,0,1)}
+    con_params.lfm      (1,1) logical = true
     con_params.steps    (1,1) double {mustBeMember(con_params.steps,[1,2])} = 1
     con_params.mpc      (1,1) string {mustBeMember(con_params.mpc,["fmincon","quadprog"])} = "quadprog"
 end
@@ -75,7 +77,8 @@ for ff = chosen_filters
     filt = filters(ff);
     A = model_con.A; B = model_con.B; C = model_con.C;
 
-    if not(isapprox(filt.lambda(t),0))
+    % apply distortion given by the Least-Favorable Model theory
+    if con_params.lfm && not(isapprox(filt.lambda(t),0))
         distortion = (eye(size(model_con.A)) - filt.P(:,:,t)/filt.lambda(t));
         A = distortion \ model_con.A;
         C = model_con.C / distortion;
