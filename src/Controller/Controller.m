@@ -15,6 +15,12 @@ function [simU, c_index] = Controller(model_con, reference, simY, filters, t, co
 %       N:      prediction horizon of MPC
 %       L:      time windows relevant for estimation
 %       beta:   forgetting factor
+%       steps:  1 to combine estimation and controller;
+%               2 to have estimation minimizing before and then controller
+%       mpc:    which matlab function to use for the MPC controller
+%               fmincon: more readble but slow (not suitable for big N)
+%               quadprog: fast quadratic solver for sparse mpc
+%                         implemntation
 %
 % OUTPUT:
 %   simU:       input of the system
@@ -26,74 +32,93 @@ arguments
     simY        (:,:) double
     filters     (:,:) struct
     t           (1,1) {mustBeInteger(t)}
-    con_params.N    (1,1) {mustBeInteger(con_params.N)}
-    con_params.L    (1,1) {mustBeInteger(con_params.L)}
-    con_params.beta (1,1) double
+    con_params.N        (1,1) double {mustBeInteger(con_params.N)}
+    con_params.L        (1,1) double {mustBeInteger(con_params.L)}
+    con_params.beta     (1,1) double {mustBeBetween(con_params.beta,0,1)}
+    con_params.steps    (1,1) double {mustBeMember(con_params.steps,[1,2])} = 1
+    con_params.mpc      (1,1) string {mustBeMember(con_params.mpc,["fmincon","quadprog"])} = "quadprog"
 end
 
 n_filts = length(filters);
 m = size(model_con.B,2);
 assert(m == 1, "the call fmincon for vectorial input is NOT yet ready")
 
-options = optimoptions('fmincon', 'Display', 'off');
-
 % store optimal results
 optimal_values = zeros(n_filts,1);
 optimal_u = zeros(m, n_filts);
 
-for ff=1:n_filts
+% compute uncertainty for each filter
+for ff=1:length(filters)
     filt = filters(ff);
+    optimal_values(ff) = optimal_values(ff) + past_prediction_error( ...
+        simY, filt, model_con.C, t, con_params.L, con_params.beta);
+end
 
-    %% MPC controller step fmincon implementation
-    % %%%%%%%%%%% start %%%%%%%%%%%
-    % u_init = zeros(con_params.N, 1);
-    % cost_func = @(u_seq) mpc_cost(u_seq, filt.x_pred(:,t), filt.P(:,:,t), ...
-    %     model_con.A, model_con.B, model_con.C, con_params.N, ...
-    %     reference(t:min(t+con_params.N-1, end)), filt.lambda(t));
-    %
-    % % WARNING: non ho la minima idea di come rendere i vincoli di questa
-    % % funzione validi per input u che siano vettori. OPS
-    % [u_tmp, optimal_values(ff) ] = fmincon(cost_func, u_init, [], [], [], [], ...
-    %     model_con.u_min*ones(con_params.N,1), model_con.u_max*ones(con_params.N,1), [], options);
-    % % e proprio per questo non so come modificare la seguente riga per
-    % % input vettoriali. HELP
-    % optimal_u(:,ff) = u_tmp(1);
-    % %%%%%%%%%%% end %%%%%%%%%%%
-    %% MPC quadprog implementation
-    % %%%%%%%%%%% start %%%%%%%%%%%
-    A = model_con.A; C = model_con.C;
+% select if use one estimation or leace the choice to the controller cost
+% function: steps
+%   1 -> one minimization is done summing cost values of estimators and
+%        controllers
+%   2 -> THE best estimator is choosen to pass to the controller (the
+%        following "for-loop" collapses to one iteration)
+switch con_params.steps
+    case 1
+        chosen_filters = 1:length(filters);
+    case 2
+        [~, c_index] = min(optimal_values);
+        chosen_filters = [c_index];
+end
+
+options = optimoptions('fmincon', 'Display', 'off');
+
+
+for ff = chosen_filters
+    filt = filters(ff);
+    A = model_con.A; B = model_con.B; C = model_con.C;
+
     if not(isapprox(filt.lambda(t),0))
         distortion = (eye(size(model_con.A)) - filt.P(:,:,t)/filt.lambda(t));
         A = distortion \ model_con.A;
         C = model_con.C / distortion;
     end
-    [optimal_u(:,ff), optimal_values(ff)] = MPCOptimizer(filt.x_pred(:,t), ...
-        A,model_con.B,C, model_con.weights, con_params.N, reference(:,t:t+con_params.N-1), ...
-        model_con.x_min, model_con.x_max,model_con.u_min,model_con.u_max);
-    % %%%%%%%%%%% end %%%%%%%%%%%
-    %% uncertainty evaluation for each filter
-    % computation of the following kind at the end
-    optimal_values(ff) = optimal_values(ff) + past_prediction_error( ...
-        simY, filt, model_con.C, t, con_params.L, con_params.beta);
+
+    switch con_params.mpc
+        case "fmincon"
+            u_init = zeros(con_params.N, 1);
+            cost_func = @(u_seq) mpc_cost(u_seq, filt.x_pred(:,t), ...
+                A, B, C, con_params.N, ...
+                reference(t:min(t+con_params.N-1, end)));
+
+            % WARNING: non ho la minima idea di come rendere i vincoli di questa
+            % funzione validi per input u che siano vettori. OPS
+            [u_tmp, opt_value_tmp ] = fmincon(cost_func, u_init, [], [], [], [], ...
+                model_con.u_min*ones(con_params.N,1), model_con.u_max*ones(con_params.N,1), [], options);
+            % e proprio per questo non so come modificare la seguente riga per
+            % input vettoriali. HELP
+            optimal_u(:,ff) = u_tmp(1);
+
+        case "quadprog"
+            [optimal_u(:,ff), opt_value_tmp] = MPCOptimizer(filt.x_pred(:,t), ...
+                A, B, C, model_con.weights, con_params.N, reference(:,t:t+con_params.N-1), ...
+                model_con.x_min, model_con.x_max,model_con.u_min,model_con.u_max);
+    end
+    optimal_values(ff) = optimal_values(ff) + opt_value_tmp;
 end
 
-% minimization of the combined measures
-[~, c_index] = min(optimal_values);
+switch con_params.steps
+    case 1
+        [~, c_index] = min(optimal_values);
+    case 2
+        % notice that the c_index was already selected before
+end
+
 simU = optimal_u(:,c_index);
 
 end
 
 
-function J = mpc_cost(u_seq, x0, P, A, B, C, N, y_ref, lambda)
+function J = mpc_cost(u_seq, x0, A, B, C, N, y_ref)
 J = 0;
 x_k = x0;
-
-% Least Favorable Model construction
-if not(isapprox(lambda,0))
-    distortion = (eye(size(A)) - P/lambda);
-    A = distortion \ A;
-    C = C / distortion;
-end
 
 for k = 1:N
     % Prediction

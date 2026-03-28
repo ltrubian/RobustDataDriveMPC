@@ -15,14 +15,14 @@ m = size(model_sim.B,2);
 %   model_con:  nominal startgin model used by MPC
 model_con.A = [1.15 1; 0.01 1];
 model_con.B = [0.48; 1.05];
-model_con.C = [0.99 0];
-model_con.D = 0;
+model_con.C = [1 0];
+model_con.D = [0.1];
 model_con.u_min = -2; model_con.u_max = 2;
 model_con.x_min = [-inf; -inf];
 model_con.x_max = [+inf; +inf];
 model_con.weights.Q = 1;
 model_con.weights.Pf = 1;
-model_con.weights.R = 0.01;
+model_con.weights.R = 0.1;
 
 %   steps_sim:  number of step to simulate
 steps_sim = 300;
@@ -39,16 +39,28 @@ set_c = logspace(-6, -3, 10);
 % NAMED-VALUE INPUTS:
 %   con_params:
 %       N:      prediction horizon of MPC
-con_params.N = 10;
+con_params.N = 5;
+% update reference: last value is repeated so that the controller has
+% always enough preview
 reference = [reference,repmat(reference(end),1,con_params.N)];
 %       L:      time windows relevant for estimation
 con_params.L = 10;
 %       beta:   forgetting factor
 con_params.beta = 0.9;
+%       steps:  1 to combine estimation and controller;
+%               2 to have estimation minimizing before and then controller
+con_params.steps = 2;
+%       mpc:    which matlab function to use for the MPC controller
+%               fmincon: more readble but slow (not suitable for big N)
+%               quadprog: fast quadratic solver for sparse mpc
+%                         implemntation
+con_params.mpc = "quadprog";
 
 %% SIMULATION OF THE WHOLE SYSTEM
 [simX, simY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
-    steps_sim, init_con, reference, set_c', L=con_params.L, N=con_params.N, beta=con_params.beta);
+    steps_sim, init_con, reference, set_c', ...
+    L=con_params.L, N=con_params.N, beta=con_params.beta, ...
+    steps=con_params.steps, mpc=con_params.mpc);
 
 %% report and analysis
 % OUTPUT OF THE SIMULATION:
@@ -66,7 +78,6 @@ con_params.beta = 0.9;
 
 % the struct filters holds all the prediction made by all the filters and
 % we need to extract the ones that were actually used by the controller
-% (and the filters)
 x_hat = zeros(n, steps_sim);
 y_hat = zeros(p, steps_sim);
 for t=1:steps_sim

@@ -17,6 +17,12 @@ function [simX, simY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, 
 %       N:      prediction horizon of MPC
 %       L:      time windows relevant for estimation
 %       beta:   forgetting factor
+%       steps:  1 to combine estimation and controller;
+%               2 to have estimation minimizing before and then controller
+%       mpc:    which matlab function to use for the MPC controller
+%               fmincon: more readble but slow (not suitable for big N)
+%               quadprog: fast quadratic solver for sparse mpc
+%                         implemntation
 %
 % OUTPUT:
 %   simX:       simulated states
@@ -25,9 +31,6 @@ function [simX, simY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, 
 %   cpuT:       cpu time of the controller
 %   filters:    struct with the dynamincs of the set of filters
 %   c_index:    the sequence of c's selected by the controller
-%
-% DEV-STATUS:
-%   NEVER RUN
 
 arguments
     model_sim   (1,1) struct
@@ -36,9 +39,11 @@ arguments
     init_con    (:,1) double
     reference   (:,:) double
     set_c       (:,1) double
-    con_params.N    (1,1) double = 20
-    con_params.L    (1,1) double = 10
-    con_params.beta (1,1) double = 0.999
+    con_params.N        (1,1) double
+    con_params.L        (1,1) double
+    con_params.beta     (1,1) double
+    con_params.steps    (1,1) double
+    con_params.mpc      (1,1) string
 end
 
 n = size(model_sim.A,1);
@@ -76,7 +81,8 @@ for t = 1:steps_sim
     tic;
     % 1) update input of the system
     [simU(:,t), c_index(t)] = Controller(model_con, reference, simY, filters, t, ...
-        L=con_params.L, N=con_params.N, beta=con_params.beta);
+        L=con_params.L, N=con_params.N, beta=con_params.beta, ...
+        steps=con_params.steps, mpc=con_params.mpc);
 
     % 2) update filters prediction of the next state
     for ff=1:size(set_c,1)
@@ -92,7 +98,7 @@ for t = 1:steps_sim
     % at the moment the matrix B is the same for the input and the noise.
     % This is NOT in general the case
     simX(:,t+1) = model_sim.A * simX(:,t) + ...
-        model_sim.B * simU(:,t) + model_sim.B * randn(m,1);
+        model_sim.B * simU(:,t) + 0.05 * randn(2,1); % model_sim.B * randn(m,1);
 
     fprintf('\rIt: %3d/%3d  CPU time: %2.2f TOTAL time: %4.2f  c: %.1e  lambda: %.2e  pred err: %3.3f', ...
         t, steps_sim, cpuT(t), sum(cpuT), filters(c_index(t)).c, filters(c_index(t)).lambda(t), norm(filters(c_index(t)).x_pred(:,t) - simX(:,t) ,2));
