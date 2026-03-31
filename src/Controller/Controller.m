@@ -35,7 +35,7 @@ arguments
     t           (1,1) {mustBeInteger(t)}
     con_params.N        (1,1) double {mustBeInteger(con_params.N)}
     con_params.L        (1,1) double {mustBeInteger(con_params.L)}
-    con_params.beta     (1,1) double {mustBeBetween(con_params.beta,0,1)}
+    con_params.beta     (1,1) double %{mustBeBetween(con_params.beta,0,1)}
     con_params.lfm      (1,1) logical = true
     con_params.steps    (1,1) double {mustBeMember(con_params.steps,[1,2])} = 1
     con_params.mpc      (1,1) string {mustBeMember(con_params.mpc,["fmincon","quadprog"])} = "quadprog"
@@ -82,6 +82,7 @@ for ff = chosen_filters
         distortion = (eye(size(model_con.A)) - filt.P(:,:,t)/filt.lambda(t));
         A = distortion \ model_con.A;
         C = model_con.C / distortion;
+        B = distortion \ model_con.B;
     end
 
     switch con_params.mpc
