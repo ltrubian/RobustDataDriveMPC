@@ -2,7 +2,7 @@ addpath("Controller/")
 addpath("RobustKalmanFilter/")
 rng(1)
 %% DEFINITION OF VARIABLES FOR THE SIMULATION
-%   model_sim:  model to simulate
+%   model_sim:  true model to simulate
 model_sim.A = [1.1 1; 0 1];
 model_sim.B = [0.5; 1];
 model_sim.C = [1 0];
@@ -12,11 +12,24 @@ n = size(model_sim.A,1);
 p = size(model_sim.C,1);
 m = size(model_sim.B,2);
 
-%   model_con:  nominal startgin model used by MPC
-model_con.A = [1.15 1; 0.01 1];
-model_con.B = [0.48; 1.05];
-model_con.C = [1 0];
-model_con.D = [0.1];
+%   delta: perturbation gain. Used to tune the magnitude of the
+%   perturbation
+delta = 0.15;
+
+%   sign: matrix of 1 and -1 to make the perturbation sign random
+A_sign = 2 * randi([0, 1], n) - 1;
+B_sign = 2 * randi([0, 1], n, m) - 1;
+C_sign = 2 * randi([0, 1], p, n) - 1;
+D_sign = 2 * randi([0, 1], p, m) - 1;
+
+%   model_con:  nominal (perturbed) model used by MPC controller. The
+%   perturbation of each entry is the product of the gain delta, 1 or -1 to
+%   make the error casual and the original entry
+model_con.A = model_sim.A + delta*A_sign.*model_sim.A;
+model_con.B = model_sim.B + delta*B_sign.*model_sim.B;
+model_con.C = model_sim.C + delta*C_sign.*model_sim.C;
+model_con.D = model_sim.D + delta*D_sign.*model_sim.D;
+
 model_con.u_min = -2; model_con.u_max = 2;
 model_con.x_min = [-inf; -inf];
 model_con.x_max = [+inf; +inf];
