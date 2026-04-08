@@ -55,7 +55,7 @@ reference = [reference,repmat(reference(end),1,con_params.N)];
 %       L:      time windows relevant for estimation
 con_params.L = 10;
 %       beta:   forgetting factor
-con_params.beta = 0.9;
+con_params.beta = 0.95; 
 %       lfm:    apply Least-Favorable Model (true/false)
 con_params.lfm = true;
 %       steps:  1 to combine estimation and controller;
