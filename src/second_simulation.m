@@ -12,17 +12,30 @@ n = size(model_sim.A,1);
 p = size(model_sim.C,1);
 m = size(model_sim.B,2);
 
-%   delta: perturbation gain. Used to tune the magnitude of the
-%   perturbation
-delta = 0.01;
+% Struct containing all the gains for noises/disturbances
+gains = struct( ...
+    "delta", 0.01, ...      % model perturbation gain
+    "proc", 0.05, ...       % process noise gain  
+    "meas", 0.03 ...        % measurement noise gain
+    );
+
+% "DEBUG MODE": if True set all the noise/perturbation gains to 0
+% Use to check if the MPC controller works in ideal conditions
+debug = true;
+
+if debug
+    gains.delta = 0;
+    gains.proc = 0;
+    gains.meas = 0;
+end
 
 %   model_con:  nominal (perturbed) model used by MPC controller. The
 %   perturbation of each entry is the product of the gain delta and a
 %   random matrix with compatible size
-model_con.A = model_sim.A + delta * randn(size(model_sim.A));
-model_con.B = model_sim.B + delta * randn(size(model_sim.B));
-model_con.C = model_sim.C + delta * randn(size(model_sim.C));
-model_con.D = model_sim.D + delta * randn(size(model_sim.D));
+model_con.A = model_sim.A + gains.delta * randn(size(model_sim.A));
+model_con.B = model_sim.B + gains.delta * randn(size(model_sim.B));
+model_con.C = model_sim.C + gains.delta * randn(size(model_sim.C));
+model_con.D = model_sim.D + gains.delta * randn(size(model_sim.D));
 
 % MPC config
 model_con.u_min = -2; 
@@ -69,7 +82,7 @@ con_params.mpc = "quadprog";
 
 %% SIMULATION OF THE WHOLE SYSTEM
 [simX, simY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
-    steps_sim, init_con, reference, set_c', ...
+    steps_sim, init_con, reference, set_c', gains, ...
     L=con_params.L, N=con_params.N, beta=con_params.beta, ...
     lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc);
 
