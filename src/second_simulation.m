@@ -54,6 +54,8 @@ init_con = [1; 0];
 
 %   reference:  reference signal
 reference = ones(1, steps_sim) * 5;
+% time = 1:steps_sim;
+% reference = sin(0.1*time);
 
 %   set_c:      set of hyperparamter 'c' to choose from
 set_c = logspace(-6, -3, 10);
