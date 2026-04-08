@@ -52,7 +52,7 @@ con_params.N = 20;
 % update reference: last value is repeated so that the controller has
 % always enough preview
 reference = [reference,repmat(reference(end),1,con_params.N)];
-%       L:      time windows relevant for estimation
+%       L:      time windows toward the past for estimation
 con_params.L = 10;
 %       beta:   forgetting factor
 con_params.beta = 0.95; 
@@ -64,7 +64,7 @@ con_params.steps = 1;
 %       mpc:    which matlab function to use for the MPC controller
 %               fmincon: more readble but slow (not suitable for big N)
 %               quadprog: fast quadratic solver for sparse mpc
-%                         implemntation
+%                         implementation
 con_params.mpc = "quadprog";
 
 %% SIMULATION OF THE WHOLE SYSTEM
