@@ -14,23 +14,19 @@ m = size(model_sim.B,2);
 
 %   delta: perturbation gain. Used to tune the magnitude of the
 %   perturbation
-delta = 0.15;
-
-%   sign: matrix of 1 and -1 to make the perturbation sign random
-A_sign = 2 * randi([0, 1], n) - 1;
-B_sign = 2 * randi([0, 1], n, m) - 1;
-C_sign = 2 * randi([0, 1], p, n) - 1;
-D_sign = 2 * randi([0, 1], p, m) - 1;
+delta = 0.01;
 
 %   model_con:  nominal (perturbed) model used by MPC controller. The
-%   perturbation of each entry is the product of the gain delta, 1 or -1 to
-%   make the error casual and the original entry
-model_con.A = model_sim.A + delta*A_sign.*model_sim.A;
-model_con.B = model_sim.B + delta*B_sign.*model_sim.B;
-model_con.C = model_sim.C + delta*C_sign.*model_sim.C;
-model_con.D = model_sim.D + delta*D_sign.*model_sim.D;
+%   perturbation of each entry is the product of the gain delta and a
+%   random matrix with compatible size
+model_con.A = model_sim.A + delta * randn(size(model_sim.A));
+model_con.B = model_sim.B + delta * randn(size(model_sim.B));
+model_con.C = model_sim.C + delta * randn(size(model_sim.C));
+model_con.D = model_sim.D + delta * randn(size(model_sim.D));
 
-model_con.u_min = -2; model_con.u_max = 2;
+% MPC config
+model_con.u_min = -2; 
+model_con.u_max = 2;
 model_con.x_min = [-inf; -inf];
 model_con.x_max = [+inf; +inf];
 model_con.weights.Q = 1;
