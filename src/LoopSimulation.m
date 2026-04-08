@@ -62,11 +62,14 @@ cpuT = zeros(size(simU,1), 1);
 simX(:,1) = init_con;
 
 %% Filters collection of information
-filters = repmat(struct("c", 1, ...
-    "P", repmat(eye(n),1,1,steps_sim+1), ... % nominal initial covariance  = I
-    "V", repmat(eye(n),1,1,steps_sim+1), ... % perturbed initial covariance= I
-    "lambda", zeros(1,steps_sim+1), ...      % lagrange multipliers
-    "x_pred", zeros(n,steps_sim+1)), ...     % prediction initial estimate
+filters = repmat( ...
+    struct( ...
+        "c", 1, ...                              % placeholder for c value
+        "P", repmat(eye(n),1,1,steps_sim+1), ... % nominal initial covariance  = I
+        "V", repmat(eye(n),1,1,steps_sim+1), ... % perturbed initial covariance= I
+        "lambda", zeros(1,steps_sim+1), ...      % lagrange multipliers
+        "x_pred", zeros(n,steps_sim+1) ...
+    ), ...                                       % prediction initial estimate
     size(set_c,1),1);
 % initialize values of c
 for i=1:size(set_c,1)
