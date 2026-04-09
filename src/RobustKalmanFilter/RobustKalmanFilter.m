@@ -25,7 +25,7 @@ arguments
     x   (:,1) double
     y   (:,1) double
     u   (:,1) double
-    c   (1,1) double {mustBePositive(c)}
+    c   (1,1) double {mustBeNonnegative(c)}
 end
 
 tmp = sys.C*V*sys.C' + sys.D*sys.D';

@@ -14,14 +14,14 @@ m = size(model_sim.B,2);
 
 % Struct containing all the gains for noises/disturbances
 gains = struct( ...
-    "delta", 0.01, ...      % model perturbation gain
+    "delta", 0.1, ...      % model perturbation gain
     "proc", 0.05, ...       % process noise gain  
     "meas", 0.03 ...        % measurement noise gain
     );
 
 % "DEBUG MODE": if True set all the noise/perturbation gains to 0
 % Use to check if the MPC controller works in ideal conditions
-debug = true;
+debug = false;
 
 if debug
     gains.delta = 0;
@@ -47,7 +47,7 @@ model_con.weights.Pf = 1;
 model_con.weights.R = 0.1;
 
 %   steps_sim:  number of step to simulate
-steps_sim = 300;
+steps_sim = 100;
 
 %   init_con:   initial condition
 init_con = [1; 0];

@@ -69,8 +69,8 @@ filters = repmat( ...
         "P", repmat(eye(n),1,1,steps_sim+1), ... % nominal initial covariance  = I
         "V", repmat(eye(n),1,1,steps_sim+1), ... % perturbed initial covariance= I
         "lambda", zeros(1,steps_sim+1), ...      % lagrange multipliers
-        "x_pred", zeros(n,steps_sim+1) ...
-    ), ...                                       % prediction initial estimate
+        "x_pred", zeros(n,steps_sim+1) ...       % prediction initial estimate
+    ), ...
     size(set_c,1),1);
 % initialize values of c
 for i=1:size(set_c,1)
@@ -98,8 +98,8 @@ for t = 1:steps_sim
     for ff=1:size(set_c,1)
         [filters(ff).x_pred(:,t+1), filters(ff).V(:,:,t+1), ~, filters(ff).P(:,:,t+1), filters(ff).lambda(1,t+1)] = ...
             RobustKalmanFilter(model_con, ...
-            filters(ff).V(:,:,t), ...      % each filter uses its own previous
-            filters(ff).x_pred(:,t), ...   % prediction: parallel approach
+            filters(c_index(t)).V(:,:,t), ...      % each filter uses the best
+            filters(c_index(t)).x_pred(:,t), ...   % prediction till now
             simY(:,t), simU(:,t), filters(ff).c);
     end
     cpuT(t) = toc;
