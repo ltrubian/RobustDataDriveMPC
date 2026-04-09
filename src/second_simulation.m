@@ -81,17 +81,12 @@ con_params.steps = 1;
 %               quadprog: fast quadratic solver for sparse mpc
 %                         implementation
 con_params.mpc = "quadprog";
-%       fapp:   filters approach
-%               cross:      every filter use the best prediction so far
-%               parallel:   each filter uses its own prediction
-con_params.fapp = "parallel";
 
 %% SIMULATION OF THE WHOLE SYSTEM
 [simX, simY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
     steps_sim, init_con, reference, set_c', gains, ...
     L=con_params.L, N=con_params.N, beta=con_params.beta, ...
-    lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc, ...
-    fapp=con_params.fapp);
+    lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc);
 
 %% report and analysis
 % OUTPUT OF THE SIMULATION:
