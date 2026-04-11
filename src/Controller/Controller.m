@@ -39,6 +39,7 @@ arguments
     con_params.lfm      (1,1) logical = true
     con_params.steps    (1,1) double {mustBeMember(con_params.steps,[1,2])} = 1
     con_params.mpc      (1,1) string {mustBeMember(con_params.mpc,["fmincon","quadprog"])} = "quadprog"
+    con_params.options  (1,1) optim.options.Quadprog
 end
 
 n_filts = length(filters);
@@ -113,7 +114,7 @@ for ff = chosen_filters
 
             [optimal_u(:,ff), opt_value_tmp] = MPCOptimizer(x0, ...
                 A, B, C, model_con.weights, N, reference(:,t:t+N-1), ...
-                model_con.x_min, model_con.x_max,model_con.u_min,model_con.u_max);
+                model_con.x_min, model_con.x_max,model_con.u_min,model_con.u_max, con_params.options);
     end
     optimal_values(ff) = optimal_values(ff) + opt_value_tmp;
 end

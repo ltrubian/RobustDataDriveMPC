@@ -1,4 +1,4 @@
-function [u_opt, cost_opt] = MPCOptimizer(x0, A, B, C, weights, N, reference, x_min, x_max, u_min, u_max)
+function [u_opt, cost_opt] = MPCOptimizer(x0, A, B, C, weights, N, reference, x_min, x_max, u_min, u_max, options)
 %MPCOptimizer compute the solution of the MPC problem for linear case
 %
 %       <usage here>
@@ -32,6 +32,7 @@ arguments(Input)
     x_max       (:,1) double
     u_min       (:,1) double
     u_max       (:,1) double
+    options
 end
 arguments(Output)
     u_opt       (:,1) double
@@ -74,7 +75,7 @@ beq = x0;
 
 % compute optimal input sequence
 % options = optimset();
-options = optimoptions('quadprog', 'Algorithm', 'interior-point-convex', 'Display', 'off');
+% options = optimoptions('quadprog', 'Algorithm', 'interior-point-convex', 'Display', 'off');
 
 [z_opt, cost_opt, flag, solver_info] = quadprog((H+H')/2, f, [], [], Aeq, beq, lb, ub, [], options);
 

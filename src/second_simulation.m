@@ -82,11 +82,14 @@ con_params.steps = 1;
 %                         implementation
 con_params.mpc = "quadprog";
 
+con_params.options = optimoptions('quadprog', 'Algorithm', 'interior-point-convex', 'Display', 'off');
+
 %% SIMULATION OF THE WHOLE SYSTEM
 [simX, simY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
     steps_sim, init_con, reference, set_c', debug, ...
     L=con_params.L, N=con_params.N, beta=con_params.beta, ...
-    lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc);
+    lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc, ...
+    options=con_params.options);
 
 %% report and analysis
 % OUTPUT OF THE SIMULATION:

@@ -48,6 +48,7 @@ arguments
     con_params.lfm      (1,1) logical
     con_params.steps    (1,1) double
     con_params.mpc      (1,1) string
+    con_params.options
 end
 
 n = size(model_sim.A,1);
@@ -83,7 +84,7 @@ c_index = ones(steps_sim,1);
 
 % vt:   noise at time t
 vt = randn(n,1) * (1 - debug);
-
+try
 for t = 1:steps_sim
     %% Output of the system
     simY(:,t) = model_sim.C * simX(:,t) ...
@@ -98,7 +99,7 @@ for t = 1:steps_sim
     % 1) update input of the system
     [simU(:,t), c_index(t), filters] = Controller(model_con, reference, simY, filters, t, ...
         L=con_params.L, N=con_params.N, beta=con_params.beta, ...
-        lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc);
+        lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc, options=con_params.options);
 
     % 2) update filters prediction of the next state
     for ff=1:size(set_c,1)
@@ -118,8 +119,11 @@ for t = 1:steps_sim
         + model_sim.B * vt ...                  % noise
         + model_sim.K * simU(:,t);              % input
 
-    fprintf('\rIt: %3d/%3d  CPU time: %2.2f TOTAL time: %4.2f  c: %.1e  lambda: %.2e  pred err: %3.3f', ...
+    fprintf('It: %3d/%3d  CPU time: %2.2f TOTAL time: %4.2f  c: %.1e  lambda: %.2e  pred err: %3.3f\n', ...
         t, steps_sim, cpuT(t), sum(cpuT), filters(c_index(t)).c, filters(c_index(t)).lambda(t), norm(filters(c_index(t)).x_pred(:,t) - simX(:,t) ,2));
 end
-fprintf("\n");
+catch e
+    fprint(getReport(e))
+    return
+end
 end
