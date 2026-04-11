@@ -1,4 +1,4 @@
-function [simU, c_index] = Controller(model_con, reference, simY, filters, t, con_params)
+function [simU, c_index, filters] = Controller(model_con, reference, simY, filters, t, con_params)
 %CONTROLLER compute the inputs
 %
 %       <usage here>
@@ -42,7 +42,9 @@ arguments
 end
 
 n_filts = length(filters);
+n = size(model_con.A,1);
 m = size(model_con.K,2);
+N = con_params.N;
 assert(m == 1, "the call fmincon for vectorial input is NOT yet ready")
 
 % store optimal results
@@ -77,14 +79,6 @@ for ff = chosen_filters
     filt = filters(ff);
     A = model_con.A; B = model_con.K; C = model_con.C;
 
-    % apply distortion given by the Least-Favorable Model theory
-    if con_params.lfm && not(isapprox(filt.lambda(t),0))
-        distortion = (eye(size(model_con.A)) - filt.P(:,:,t)/filt.lambda(t));
-        A = distortion \ model_con.A;
-        C = model_con.C / distortion;
-        B = distortion \ model_con.K;
-    end
-
     switch con_params.mpc
         case "fmincon"
             u_init = zeros(con_params.N, 1);
@@ -101,8 +95,24 @@ for ff = chosen_filters
             optimal_u(:,ff) = u_tmp(1);
 
         case "quadprog"
-            [optimal_u(:,ff), opt_value_tmp] = MPCOptimizer(filt.x_pred(:,t), ...
-                A, B, C, model_con.weights, con_params.N, reference(:,t:t+con_params.N-1), ...
+            if con_params.lfm
+                model_extended.A = kron(eye(N), model_con.A);
+                model_extended.B = kron(eye(N), model_con.B);
+                model_extended.C = kron([1, zeros(1,N-1)], model_con.C);
+                model_extended.D = kron([1, zeros(1,N-1)], model_con.D);
+                model_extended.K = kron(eye(N), model_con.K);
+                % model_extended.J =
+                [x0, filters(ff).Vex] = ...
+                    RobustKalmanFilter(model_extended, ...
+                    filters(ff).Vex, ...
+                    paddata(filt.x_pred(:,t),n*N,Side="trailing"), ...
+                    simY(:,t), zeros(m*N,1), filt.c);
+            else
+                x0 = paddata(A*filt.x_pred(:,t),n*N,Side="trailing");
+            end
+
+            [optimal_u(:,ff), opt_value_tmp] = MPCOptimizer(x0, ...
+                A, B, C, model_con.weights, N, reference(:,t:t+N-1), ...
                 model_con.x_min, model_con.x_max,model_con.u_min,model_con.u_max);
     end
     optimal_values(ff) = optimal_values(ff) + opt_value_tmp;

@@ -52,9 +52,12 @@ Eeq = [A; zeros((N-1)*n, n)];
 
 % c) MATRICES and VECTOR to construct GENERAL INEQUALITY CONSTRAINT
 % In this case this constraint are enforced only on starting x0
-Gin = [zeros(2*n, (n+m)*N)];
-win = [x_max; -x_min];
-Ein = [-eye(n); eye(n)];
+% at the moment no general constraint are imposed and this can be
+% neglected. Moreover, the extend estimate state obtained by the RKF
+% requires this contraints to be rethought from ground up
+% Gin = [zeros(2*n, (n+m)*N)];
+% win = [x_max; -x_min];
+% Ein = [-eye(n); eye(n)];
 
 % d) BOUNDS ON THE OPTIMIZATION VARIABLE
 lb = [repmat(x_min, N, 1); repmat(u_min, N, 1)];
@@ -64,16 +67,16 @@ H  = sparse(blkdiag(kron(eye(N-1), C' * weights.Q * C), C' * weights.Pf * C, kro
 f  = -blkdiag(kron(eye(N-1), C' * weights.Q), C' * weights.Pf, kron(eye(N), weights.R))*[reference; zeros(m*N,1)];
 
 Aeq = sparse(Geq);
-beq = Eeq*x0;
+beq = x0;
 
-Ain = sparse(Gin);
-bin = Ein*x0 + win;
+% Ain = sparse(Gin);
+% bin = Ein*x0 + win;
 
 % compute optimal input sequence
-options = optimset('quadprog');
-options = optimset(options, 'Algorithm', 'interior-point-convex', 'Display', 'off');
+% options = optimset();
+options = optimoptions('quadprog', 'Algorithm', 'interior-point-convex', 'Display', 'off');
 
-[z_opt, cost_opt, flag, solver_info] = quadprog((H+H')/2, f, Ain, bin, Aeq, beq, lb, ub, [], options);
+[z_opt, cost_opt, flag, solver_info] = quadprog((H+H')/2, f, [], [], Aeq, beq, lb, ub, [], options);
 
 %NOTE: H could be used directly, but (H+H')/2 is taken instead to
 %      ensure the Hessian matrix to be symmetric even in presence of numerical errors

@@ -70,7 +70,8 @@ filters = repmat( ...
         "P", repmat(eye(n),1,1,steps_sim+1), ... % nominal initial covariance  = I
         "V", repmat(eye(n),1,1,steps_sim+1), ... % perturbed initial covariance= I
         "lambda", zeros(1,steps_sim+1), ...      % lagrange multipliers
-        "x_pred", zeros(n,steps_sim+1) ...       % prediction initial estimate
+        "x_pred", zeros(n,steps_sim+1), ...      % prediction initial estimate
+        "Vex", eye(n*con_params.N) ...  % nominal V matrix for big leap estimation
     ), ...
     size(set_c,1),1);
 % initialize values of c
@@ -95,7 +96,7 @@ for t = 1:steps_sim
     %% Controller and Filter:
     tic;
     % 1) update input of the system
-    [simU(:,t), c_index(t)] = Controller(model_con, reference, simY, filters, t, ...
+    [simU(:,t), c_index(t), filters] = Controller(model_con, reference, simY, filters, t, ...
         L=con_params.L, N=con_params.N, beta=con_params.beta, ...
         lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc);
 
