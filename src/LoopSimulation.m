@@ -1,5 +1,5 @@
 function [simX, simY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
-    steps_sim, init_con, reference, set_c, gains, con_params)
+    steps_sim, init_con, reference, set_c, debug, con_params)
 %LOOPSIMULATION Simulate cloosed-loop system
 %
 %       <usage here>
@@ -11,6 +11,7 @@ function [simX, simY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, 
 %   init_con:   initial condition
 %   reference:  reference signal
 %   set_c:      set of hyperparamter 'c' to choose from
+%   debug:      remove all noise leaving deterministic evolution
 %
 % NAMED-VALUE INPUTS:
 %   con_params:
@@ -40,7 +41,7 @@ arguments
     init_con    (:,1) double
     reference   (:,:) double
     set_c       (:,1) double
-    gains               (1,1) struct
+    debug       (1,1) logical
     con_params.N        (1,1) double
     con_params.L        (1,1) double
     con_params.beta     (1,1) double
@@ -51,7 +52,7 @@ end
 
 n = size(model_sim.A,1);
 p = size(model_sim.C,1);
-m = size(model_sim.B,2);
+m = size(model_sim.K,2);
 
 %% actual state and control trajectories
 simX = zeros(n, steps_sim + 1);
@@ -79,14 +80,18 @@ end
 % sequence of the (indexes) tollerances selected by the controller
 c_index = ones(steps_sim,1);
 
+% vt:   noise at time t
+vt = randn(n,1) * (1 - debug);
+
 for t = 1:steps_sim
     %% Output of the system
-    % Locally defined output noise
-    % TODO: make it an input from main script
-    % simY(:,t) = model_sim.C * simX(:,t);% + model_sim.D * randn(p,m);
-    simY(:,t) = model_sim.C * simX(:,t) + gains.meas * randn(p,1);
-    % simY(:,t) = model_sim.C * simX(:,t) + model_sim.D * simU(:,t) + 0.01 * randn(p,1);
-    
+    simY(:,t) = model_sim.C * simX(:,t) ...
+        + model_sim.D * vt;
+        % to add the input -> output dynamics, make sure matrix and MPC can
+        % deal with it. at the moment MPC is not ready
+        % ... + model_sim.J * simU(:,t);
+
+
     %% Controller and Filter:
     tic;
     % 1) update input of the system
@@ -105,10 +110,12 @@ for t = 1:steps_sim
     cpuT(t) = toc;
 
     %% Simulate the system
-    % at the moment the matrix B is the same for the input and the noise.
-    % This is NOT in general the case
-    simX(:,t+1) = model_sim.A * simX(:,t) + ...
-        model_sim.B * simU(:,t) + gains.proc * randn(2,1); % model_sim.B * randn(m,1);
+    % update noise
+    vt = randn(n,1) * (1 - debug);
+    % update state
+    simX(:,t+1) = model_sim.A * simX(:,t) ...   % state
+        + model_sim.B * vt ...                  % noise
+        + model_sim.K * simU(:,t);              % input
 
     fprintf('\rIt: %3d/%3d  CPU time: %2.2f TOTAL time: %4.2f  c: %.1e  lambda: %.2e  pred err: %3.3f', ...
         t, steps_sim, cpuT(t), sum(cpuT), filters(c_index(t)).c, filters(c_index(t)).lambda(t), norm(filters(c_index(t)).x_pred(:,t) - simX(:,t) ,2));

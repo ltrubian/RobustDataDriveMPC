@@ -42,7 +42,7 @@ arguments
 end
 
 n_filts = length(filters);
-m = size(model_con.B,2);
+m = size(model_con.K,2);
 assert(m == 1, "the call fmincon for vectorial input is NOT yet ready")
 
 % store optimal results
@@ -75,14 +75,14 @@ options = optimoptions('fmincon', 'Display', 'off');
 
 for ff = chosen_filters
     filt = filters(ff);
-    A = model_con.A; B = model_con.B; C = model_con.C;
+    A = model_con.A; B = model_con.K; C = model_con.C;
 
     % apply distortion given by the Least-Favorable Model theory
     if con_params.lfm && not(isapprox(filt.lambda(t),0))
         distortion = (eye(size(model_con.A)) - filt.P(:,:,t)/filt.lambda(t));
         A = distortion \ model_con.A;
         C = model_con.C / distortion;
-        B = distortion \ model_con.B;
+        B = distortion \ model_con.K;
     end
 
     switch con_params.mpc

@@ -5,7 +5,7 @@ function [x_pred, V_next, G, P_next, lambda] = RobustKalmanFilter(sys, V, x, y, 
 %   compute one interation of the Kalman Filter
 %
 % INPUT
-%   sys:    struct with fields A, B, C, D
+%   sys:    struct with fields A, B, C, D, K
 %   V:      least-favorable covariance matrix
 %   x:      current state
 %   y:      current output
@@ -30,10 +30,10 @@ end
 
 tmp = sys.C*V*sys.C' + sys.D*sys.D';
 G = (sys.A*V*sys.C' + sys.B*sys.D') / (tmp);
-x_pred = sys.A*x + G * (y - sys.C*x) + sys.B * u;
+x_pred = sys.A*x + G * (y - sys.C*x) + sys.K * u;
 
 % nominal conditional covariance matrix
-% P = sys.A*V*sys.A' - G * tmp * G' + sys.B*sys.B';
+% P_next = sys.A*V*sys.A' - G * tmp * G' + sys.B*sys.B';
 P_next = (sys.A-G*sys.C)*V*(sys.A-G*sys.C)' + (sys.B-G*sys.D)*(sys.B-G*sys.D)';
 
 % least-favorable covariance matrix
