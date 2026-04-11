@@ -70,8 +70,8 @@ Ain = sparse(Gin);
 bin = Ein*x0 + win;
 
 % compute optimal input sequence
-options = optimset('quadprog');
-options = optimset(options, 'Algorithm', 'interior-point-convex', 'Display', 'off');
+% options = optimset();
+options = optimoptions('quadprog', 'Algorithm', 'interior-point-convex', 'Display', 'off');
 
 [z_opt, cost_opt, flag, solver_info] = quadprog((H+H')/2, f, Ain, bin, Aeq, beq, lb, ub, [], options);
 
