@@ -38,6 +38,7 @@ P_next = (sys.A-G*sys.C)*V*(sys.A-G*sys.C)' + (sys.B-G*sys.D)*(sys.B-G*sys.D)';
 
 % least-favorable covariance matrix
 lambda = LagrangeMultiplier(P_next, c, "fast");
-V_next = inv( inv(P_next)-eye(size(sys.A))/lambda );
+% V_next = inv( inv(P_next)-eye(size(sys.A))/lambda );
+V_next = ( eye(size(sys.A)) - P_next/lambda ) \ P_next;
 
 end
