@@ -69,9 +69,13 @@ for t=(NF - 1):-1:1
     % compute L after decomposition of the inverse of K
     Ls(:,:,t) = chol(iKs(:,:,t)) \ eye(size(iKs(:,:,1)));
     % update inverse of Omega to finally compute inverse of K for the next
-    % iteration
+    % iteration. when t = 1 the cycle is breaked because there is no
+    % lambda(0) to use (and it is also unnecessary to compute iOs, iWs)
+    if t == 1
+        break;
+    end
     iOs(:,:,t) = Acor' * iWs(:,:,t+1) * Acor + Hs(:,:,t)' * iKs(:,:,t) * Hs(:,:,t);
-    iWs(:,:,t) = iOs(:,:,t) + lambdas(1,t) * eye(n);
+    iWs(:,:,t) = iOs(:,:,t) + eye(n) / lambdas(1,t-1) ;
 end
 
 % compute the matrices of the extended state
