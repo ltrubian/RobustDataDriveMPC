@@ -4,9 +4,9 @@ rng(1)
 %% DEFINITION OF VARIABLES FOR THE SIMULATION
 %   model_sim:  true model to simulate
 model_sim.A = [1.1 1; 0 1];         % state -> state
-model_sim.B = [0.5 0.2; 0.3 0.2];   % noise -> state
+model_sim.B = [0.5 0.2 0.1; 0.3 0.2 0.01];   % noise -> state
 model_sim.C = [1 0];                % state -> output
-model_sim.D = [0.1, 0.05];          % noise -> output
+model_sim.D = [0.1, 0.05, 0.01];          % noise -> output
 
 model_sim.K = [0.5; 1];             % input -> state
 % model_sim.J = [0.1; 0.05];          % input -> output
