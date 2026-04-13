@@ -12,7 +12,7 @@ function lambda1 = LagrangeMultiplier(P, c, type)
 % riportano lo stesso risultato ed è lo zero della funzione (gamma - 2*c)
 arguments
     P    (:,:) double
-    c    (1,1) double {mustBePositive(c)}
+    c    (1,1) double {mustBeNonnegative(c)}
     type (1,:) string {mustBeMember(type,["fast", "normal"])} = "normal"
 end
 n = size(P,1);

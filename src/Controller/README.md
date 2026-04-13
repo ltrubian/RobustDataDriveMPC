@@ -15,7 +15,7 @@ The controller estimate the optimal uncertainty *c* and THEN a MPC compute the c
 ## MPC with inner uncertainty estimation
 The controller estimate the optimal uncertainty using the MPC optimizer itself
 
-- status:       NOT IMPLEMENTED
-- simulated:    NO ()
+- status:       IMPLEMENTED
+- simulated:    YES (second_simulation.m)
 - file:         Controller.m
-- helper files:
+- helper files: NONE
