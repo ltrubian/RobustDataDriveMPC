@@ -1,4 +1,4 @@
-function lambda1 = LagrangeMultiplier(P, c, type)
+function lambda2 = LagrangeMultiplier(P, c, type)
 %LagrangeMultiplier
 %   lambda2 = LagrangeMultiplier(P, c, type) finds the lagrange multiplier
 %   using secant method
@@ -26,28 +26,42 @@ switch type
 end
 
 lambda0 = max(e) * 1.01;
-lambda1 = lambda0 * 2;
-
+lambda1 = lambda0 * 100;
+side = 0;
 gamma0 = gamfun(lambda0);
 gamma1 = gamfun(lambda1);
+gamma2 = 1;
 
-while abs(gamma1) >= 1e-9
-    if sign(gamma1) == sign(gamma0)
-        lambda2 = lambda1 - (gamma1 * (lambda1 - lambda0) / (gamma1 - gamma0));
-        % --- next iteration values ---
-        lambda0 = lambda1; lambda1 = lambda2;
-        gamma0 = gamma1;   gamma1 = gamfun(lambda2);
-    else
-        lambda2 = (lambda0 * gamma1 *0.5 - gamma0 * lambda1 ) / (gamma1 *0.5 - gamma0);
-        gamma2 = gamfun(lambda2);
-        % --- next iteration values ---
-        if sign(gamma2) == sign(gamma1)
-            lambda1 = lambda2;
-            gamma1 = gamma2;
-        else
-            lambda0 = lambda2;
-            gamma0 = gamma2;
+while abs(gamma2) >= 1e-9
+    lambda2 = (lambda0 * gamma1 - gamma0 * lambda1 ) / (gamma1 - gamma0);
+    gamma2 = gamfun(lambda2);
+
+    % --- next iteration values ---
+    if sign(gamma2) == sign(gamma1)
+        if side == -1
+            mp = 1 - gamma2/gamma1;
+            if mp < 0
+                gamma0 = gamma0 * 0.5;
+            else
+                gamma0 = gamma0 * mp;
+            end
         end
+        lambda1 = lambda2;
+        gamma1 = gamma2;
+        side = -1;
+    else
+        if side == 1
+            mp = 1 - gamma2/gamma0;
+            if mp < 0
+                gamma1 = gamma1 * 0.5;
+            else
+                gamma1 = gamma1 * mp;
+            end
+        end
+        lambda0 = lambda2;
+        gamma0 = gamma2;
+        side = 1;
     end
+
 end
 end
