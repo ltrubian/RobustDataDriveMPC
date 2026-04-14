@@ -13,7 +13,7 @@ function lambda2 = LagrangeMultiplier(P, c, type)
 arguments
     P    (:,:) double
     c    (1,1) double {mustBeNonnegative(c)}
-    type (1,:) string {mustBeMember(type,["fast", "normal"])} = "normal"
+    type (1,:) string % {mustBeMember(type,["fast", "normal"])} = "normal"
 end
 n = size(P,1);
 e = eig(P);
@@ -26,13 +26,15 @@ switch type
 end
 
 lambda0 = max(e) * 1.01;
-lambda1 = lambda0 * 100;
+lambda1 = lambda0 * 10;
 side = 0;
 gamma0 = gamfun(lambda0);
 gamma1 = gamfun(lambda1);
 gamma2 = 1;
+k = 0;
 
-while abs(gamma2) >= 1e-9
+while abs(gamma2) >= 1e-9 && abs(lambda0 - lambda1) > 1e-9
+    k = k + 1;
     lambda2 = (lambda0 * gamma1 - gamma0 * lambda1 ) / (gamma1 - gamma0);
     gamma2 = gamfun(lambda2);
 

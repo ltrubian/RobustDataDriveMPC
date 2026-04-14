@@ -16,7 +16,7 @@ p = size(model_sim.C,1);
 m = size(model_sim.K,2);
 
 % Struct containing all the gains for noises/disturbances
-delta = 0.1;      % model perturbation gain
+delta = 0.01;      % model perturbation gain
 
 % "DEBUG MODE": if True set all the noise/perturbation gains to 0
 % Use to check if the MPC controller works in ideal conditions
@@ -81,6 +81,7 @@ con_params.steps = 1;
 %               quadprog: fast quadratic solver for sparse mpc
 %                         implementation
 con_params.mpc = "quad-pro";
+% con_params.mpc = "quadprog";
 
 con_params.options = optimoptions('quadprog', 'Algorithm', 'interior-point-convex', 'Display', 'off');
 

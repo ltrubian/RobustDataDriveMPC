@@ -120,14 +120,27 @@ for ff = chosen_filters
                 A, B, C, model_con.weights, N, reference(:,t:t+N-1), ...
                 model_con.x_min, model_con.x_max,model_con.u_min,model_con.u_max, con_params.options);
         case "quad-pro"
-            [A, ~, C] = LeastFavorableModel(model_con, filt.V(:,:,t), filt.c, N);
-            x0 = paddata( ...
-                    RobustKalmanFilter(model_con, ...
-                    filt.V(:,:,t),filt.x_pred(:,t),simY(:,t),zeros(m,1),filt.c), ...
-                    2*n*N,Side="trailing");
+            [A, B, C, D] = LeastFavorableModel(model_con, filt.V(:,:,t), filt.c, N);
+            model_lfm.A = A(:,:,1);
+            model_lfm.B = B(:,:,1);
+            model_lfm.C = C(:,:,1);
+            model_lfm.D = D(:,:,1);
+            model_lfm.K = zeros(2*n,1);
+
+            [filters(ff).xi, filters(ff).Vlfm] = RobustKalmanFilter(model_lfm, ...
+                filt.Vlfm,filt.xi,simY(:,t),zeros(1,1),filt.c);
+
+            if norm(imag(filt.xi)) > 1e-15 || norm(imag(filt.Vlfm)) > 1e-15
+                error("numerical error, comlex numbers")
+            end
+            filters(ff).xi = real(filters(ff).xi);
+            filters(ff).Vlfm = real(filters(ff).Vlfm);
+
+            x0 = paddata(filters(ff).xi,2*n*N,Side="trailing");
             A = A(:,:,2:end);
             [optimal_u(:,ff), opt_value_tmp] = MPCTV(x0, ...
-                A, [B; sparse(n,m)], C, model_con.weights, N, reference(:,t:t+N-1), ...
+                A, [model_con.K; sparse(n,m)], C, model_con.weights, ...
+                N, reference(:,t:t+N-1), ...
                 [model_con.x_min; repmat(-Inf,n,1)], [model_con.x_max; repmat(+Inf,n,1)], ...
                 model_con.u_min,model_con.u_max, con_params.options);
     end
