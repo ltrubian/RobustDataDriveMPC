@@ -120,23 +120,13 @@ for ff = chosen_filters
                 A, B, C, model_con.weights, N, reference(:,t:t+N-1), ...
                 model_con.x_min, model_con.x_max,model_con.u_min,model_con.u_max, con_params.options);
         case "quad-pro"
-            [A, B, C, D] = LeastFavorableModel(model_con, filt.V(:,:,t), filt.c, N);
-            model_lfm.A = A(:,:,1);
-            model_lfm.B = B(:,:,1);
-            model_lfm.C = C(:,:,1);
-            model_lfm.D = D(:,:,1);
-            model_lfm.K = zeros(2*n,1);
+            [A, ~, C] = LeastFavorableModel(model_con, filt.V(:,:,t), filt.c, N);
 
-            [filters(ff).xi, filters(ff).Vlfm] = RobustKalmanFilter(model_lfm, ...
-                filt.Vlfm,filt.xi,simY(:,t),zeros(1,1),filt.c);
+            G = (filt.V(:,:,t)*model_con.C' + model_con.B*model_con.D') / ...
+                (model_con.C*filt.V(:,:,t)*model_con.C' + model_con.D*model_con.D');
 
-            if norm(imag(filt.xi)) > 1e-15 || norm(imag(filt.Vlfm)) > 1e-15
-                error("numerical error, comlex numbers")
-            end
-            filters(ff).xi = real(filters(ff).xi);
-            filters(ff).Vlfm = real(filters(ff).Vlfm);
-
-            x0 = paddata(filters(ff).xi,2*n*N,Side="trailing");
+            x0 = paddata([filt.x_pred(:,t);G * (simY(:,t) - model_con.C*filt.x_pred(:,t))],...
+                2*n*N,Side="trailing");
             A = A(:,:,2:end);
             [optimal_u(:,ff), opt_value_tmp] = MPCTV(x0, ...
                 A, [model_con.K; sparse(n,m)], C, model_con.weights, ...
