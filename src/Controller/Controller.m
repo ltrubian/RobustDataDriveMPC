@@ -120,12 +120,19 @@ for ff = chosen_filters
                 A, B, C, model_con.weights, N, reference(:,t:t+N-1), ...
                 model_con.x_min, model_con.x_max,model_con.u_min,model_con.u_max, con_params.options);
         case "quad-pro"
-            [A, ~, C] = LeastFavorableModel(model_con, filt.V(:,:,t), filt.c, N);
-
+            [A, B, C, D] = LeastFavorableModel(model_con, filt.V(:,:,t), filt.c, N);
+            model_ex.A = A(:,:,1);
+            model_ex.B = B(:,:,1);
+            model_ex.C = C(:,:,1);
+            model_ex.D = D(:,:,1);
+            model_ex.K = zeros(2*n,m);
             G = (filt.V(:,:,t)*model_con.C' + model_con.B*model_con.D') / ...
                 (model_con.C*filt.V(:,:,t)*model_con.C' + model_con.D*model_con.D');
 
-            x0 = paddata([filt.x_pred(:,t);G * (simY(:,t) - model_con.C*filt.x_pred(:,t))],...
+            [x_pred, filters(ff).Vlfm(:,:,t+1)] = RobustKalmanFilter(model_ex, ...
+                    filt.Vlfm(:,:,t),[filt.x_pred(:,t); G * (simY(:,t) - model_con.C*filt.x_pred(:,t))] ,simY(:,t),zeros(m,1),filt.c);
+
+            x0 = paddata(real(x_pred),...
                 2*n*N,Side="trailing");
             A = A(:,:,2:end);
             [optimal_u(:,ff), opt_value_tmp] = MPCTV(x0, ...

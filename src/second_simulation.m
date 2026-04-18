@@ -58,7 +58,7 @@ reference = ones(1, steps_sim) * 5;
 % reference = sin(0.1*time);
 
 %   set_c:      set of hyperparamter 'c' to choose from
-set_c = logspace(-6, -3, 10);
+set_c = [0,logspace(-3, 0, 9)];
 
 % NAMED-VALUE INPUTS:
 %   con_params:
@@ -118,14 +118,14 @@ end
 % Plot results
 figure;
 
-subplot(3,1,1);
-plot(simX(1,:));
+ax1=subplot(3,1,1);
+plot((simX(1,2:end)-x_hat(1,:)).^2);
 hold on;
-plot(x_hat(1,:));
-legend('True State','RKF Estimate');
+plot((simX(2,2:end)-x_hat(2,:)).^2);
+legend('er_1', 'er_2');
 title('True VS Estimated States');
 
-subplot(3,1,2);
+ax2=subplot(3,1,2);
 plot(simY(1,:));
 hold on;
 plot(y_hat(1,:));
@@ -134,7 +134,8 @@ plot(reference(1:steps_sim));
 legend('True Output','RKF Estimate');
 title('True VS Estimated Output');
 
-subplot(3,1,3);
+ax3=subplot(3,1,3);
 stairs(simU(1,:));
 title('Ingresso di Controllo u');
 
+xlim([ax1,ax2,ax3],[1, steps_sim])

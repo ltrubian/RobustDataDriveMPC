@@ -86,6 +86,11 @@ c_index = ones(steps_sim,1);
 
 % vt:   noise at time t
 vt = randn(n+p,1) * (1 - debug);
+if debug
+    for i=1:size(set_c,1)
+        filters(i).x_pred(:,1) = init_con;
+    end
+end
 try
 for t = 1:steps_sim
     %% Output of the system
@@ -125,7 +130,7 @@ for t = 1:steps_sim
         t, steps_sim, cpuT(t), sum(cpuT), filters(c_index(t)).c, filters(c_index(t)).lambda(t), norm(filters(c_index(t)).x_pred(:,t) - simX(:,t) ,2));
 end
 catch e
-    fprintf(getReport(e))
+    disp(getReport(e))
     return
 end
 end
