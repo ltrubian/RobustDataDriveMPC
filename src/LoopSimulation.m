@@ -56,10 +56,10 @@ p = size(model_sim.C,1);
 m = size(model_sim.K,2);
 
 %% actual state and control trajectories
-simX = zeros(n, steps_sim + 1);
-simY = zeros(p, steps_sim + 1);
-simU = zeros(m, steps_sim);
-cpuT = zeros(size(simU,1), 1);
+simX = NaN(n, steps_sim + 1);
+simY = NaN(p, steps_sim + 1);
+simU = NaN(m, steps_sim);
+cpuT = NaN(size(simU,1), 1);
 
 % initialize the simulation initial information
 simX(:,1) = init_con;
@@ -126,8 +126,8 @@ for t = 1:steps_sim
         + model_sim.B * vt ...                  % noise
         + model_sim.K * simU(:,t);              % input
 
-    fprintf('It: %3d/%3d  CPU time: %2.2f TOTAL time: %4.2f  c: %.1e  lambda: %.2e  pred err: %3.3f\n', ...
-        t, steps_sim, cpuT(t), sum(cpuT), filters(c_index(t)).c, filters(c_index(t)).lambda(t), norm(filters(c_index(t)).x_pred(:,t) - simX(:,t) ,2));
+    % fprintf('It: %3d/%3d  CPU time: %2.2f TOTAL time: %4.2f  c: %.1e  lambda: %.2e  pred err: %3.3f\n', ...
+    %     t, steps_sim, cpuT(t), sum(cpuT), filters(c_index(t)).c, filters(c_index(t)).lambda(t), norm(filters(c_index(t)).x_pred(:,t) - simX(:,t) ,2));
 end
 catch e
     disp(getReport(e))

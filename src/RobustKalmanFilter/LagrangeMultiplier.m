@@ -31,6 +31,7 @@ side = 0;
 gamma0 = gamfun(lambda0);
 gamma1 = gamfun(lambda1);
 gamma2 = 1;
+lambda2 = lambda0;
 k = 0;
 
 while abs(gamma2) >= 1e-9 && abs(lambda0 - lambda1) > 1e-9
