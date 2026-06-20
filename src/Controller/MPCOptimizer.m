@@ -21,10 +21,10 @@ function [u_opt, cost_opt] = MPCOptimizer(x0, A, B, C, weights, N, reference, x_
 %   cost_opt:    value of the cost function at its optimum
 
 arguments(Input)
-    x0          (:,1) double
-    A           (:,:) double
-    B           (:,:) double
-    C           (:,:) double
+    x0          (:,1)   double
+    A           (:,:,:) double
+    B           (:,:)   double
+    C           (:,:,:) double
     weights     (1,1) struct
     N           (1,1) double
     reference   (:,1) double
@@ -38,61 +38,77 @@ arguments(Output)
     u_opt       (:,1) double
     cost_opt    (1,1) double
 end
+% check and set state dimension
+[nb, m] = size(B);
+[na, ~, timeA] = size(A);
+[~, nc, timeC] = size(C);
+assert(na == nb && na == nc, "state dimension do not match")
+n = na;
 
-n = size(A,1);  % number of state
-m = size(B,2);  % number of inputs
+if timeA ~= 1
+    % construct time-varying block matrices representing the dynamics of
+    % the LFM
+    assert(timeA == N-1 && timeC == N, "notice that you need less A's than C's")
 
-%% MPC controller setup - sparse formulation
+    % estract blocks of A,C to easily construct the block diagonal matrices
+    A_sparse = cellfun(@sparse, squeeze(num2cell(A, [1, 2])), 'UniformOutput', false);
+    C_sparse = cellfun(@sparse, squeeze(num2cell(C, [1, 2])), 'UniformOutput', false);
 
-% a) OBJECTIVE HESSIAN
-% H_bar = blkdiag(kron(eye(N-1), C' * weights.Q * C), C' * weights.Pf * C, kron(eye(N), weights.R));
+    % generate the block matrices for A and C
+    A_blk = [sparse(n,N*n)
+        blkdiag(A_sparse{:}), sparse((N-1)*n,n)];
+    C_blk = blkdiag(C_sparse{:});
+else
+    % construct time-invariant dynamics for the nominal model
+    A_blk = kron(diag(ones(N-1,1),-1), A);
+    C_blk = kron(speye(N), C);
+end
 
-% b) MATRICES to construct EQUALITY CONTRAINT
-Geq = [kron(eye(N), eye(n)) - kron(diag(ones(N-1,1),-1), A), kron(eye(N), -B)];
-Eeq = [A; zeros((N-1)*n, n)];
-
-% c) MATRICES and VECTOR to construct GENERAL INEQUALITY CONSTRAINT
-% In this case this constraint are enforced only on starting x0
-% at the moment no general constraint are imposed and this can be
-% neglected. Moreover, the extend estimate state obtained by the RKF
-% requires this contraints to be rethought from ground up
-% Gin = [zeros(2*n, (n+m)*N)];
-% win = [x_max; -x_min];
-% Ein = [-eye(n); eye(n)];
-
-% d) BOUNDS ON THE OPTIMIZATION VARIABLE
+% BOUNDS ON THE OPTIMIZATION VARIABLE
 lb = [repmat(x_min, N, 1); repmat(u_min, N, 1)];
 ub = [repmat(x_max, N, 1); repmat(u_max, N, 1)];
 
-H  = sparse(blkdiag(kron(eye(N-1), C' * weights.Q * C), C' * weights.Pf * C, kron(eye(N), weights.R)));
-f  = -blkdiag(kron(eye(N-1), C' * weights.Q), C' * weights.Pf, kron(eye(N), weights.R))*[reference; zeros(m*N,1)];
-
-Aeq = sparse(Geq);
+% MATRICES to construct EQUALITY CONTRAINT (state evolution constraint)
+Aeq = sparse([speye(N*n) - A_blk, kron(speye(N), -B)]);
 beq = x0;
 
-% Ain = sparse(Gin);
-% bin = Ein*x0 + win;
+% COST MATRICES
+% construct hessian noticing that the cost are filtered by the matrices C
+% since the reference is on the output
+fy = C_blk' * blkdiag(kron(speye(N-1), weights.Q), weights.Pf);
+Hu = kron(speye(N), weights.R);
+% NOTE: H could be used directly, but (H+H')/2 is taken instead to
+%       ensure the Hessian matrix to be symmetric even in presence 
+%       of numerical errors
+f = - [fy * reference; sparse(m*N,1)];
+H = blkdiag(fy * C_blk, Hu);
+H = (H+H')/2;
 
-% compute optimal input sequence
-% options = optimset();
-% options = optimoptions('quadprog', 'Algorithm', 'interior-point-convex', 'Display', 'off');
+idx = 1 + n*N; % starting index for optimal input u 
 
-[z_opt, cost_opt, flag, solver_info] = quadprog((H+H')/2, f, [], [], Aeq, beq, lb, ub, [], options);
+% selection of the quadratic solver
+if ~isempty(options)
+    [z_opt, cost_opt, flag, solver_info] = quadprog(H, f, [], [], ...
+        Aeq, beq, lb, ub, zeros((n+m)*N,1), options);
 
-%NOTE: H could be used directly, but (H+H')/2 is taken instead to
-%      ensure the Hessian matrix to be symmetric even in presence of numerical errors
+    % check the flag to make sure that a solution exists, otherwise, throw error
+    if(flag ~= 1)
+        error(solver_info.message)
+    end
+    u_opt  = z_opt(idx:end);
+    u_opt = u_opt(1:m);
+else
+    l = [beq; lb];
+    u = [beq; ub];
+    A = [Aeq;
+        speye(N*(n+m))];
 
-% check the flag to make sure that a solution exists, otherwise, throw error
-if(flag ~= 1)
-    error(solver_info.message)
+    prob = osqp;
+    prob.setup(H, f, A, l, u, 'warm_start', false, 'verbose', false, ...
+        'eps_abs', 1e-8, 'eps_rel', 1e-8, 'polish', true);
+    res = prob.solve();
+
+    u_opt = res.x(idx:idx+m-1);
+    cost_opt = res.info.obj_val;
 end
-
-idx = 1 + n*N;
-u_opt  = z_opt(idx:end);
-
-
-% apply the first control input sample
-u_opt = u_opt(1:m);
-
-
 end

@@ -29,4 +29,6 @@ P_next = (sys.A-G*sys.C)*V*(sys.A-G*sys.C)' + (sys.B-G*sys.D)*(sys.B-G*sys.D)';
 lambda = LagrangeMultiplier(P_next, c, "fast");
 V_next = ( eye(size(sys.A)) - P_next/lambda ) \ P_next;
 
+% enforce symmetry and reduce numerical errors
+V_next = (V_next+V_next')/2;
 end

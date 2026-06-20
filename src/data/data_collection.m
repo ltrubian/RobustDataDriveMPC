@@ -1,6 +1,8 @@
 addpath("Controller/")
 addpath("RobustKalmanFilter/")
+addpath("LeastFavorableModel/")
 rng(1)
+verbose = false;
 % the same true model and nominal model (used by the controller) is used
 % for all the simulations. Each simulation varies from the others on the
 % random noise.
@@ -56,7 +58,7 @@ model_con.weights.Pf = 1;
 model_con.weights.R = 0.1;
 
 %   steps_sim:  number of step to simulate
-steps_sim = 100;
+steps_sim = 50;
 
 %   init_con:   initial condition
 init_con = [1; 0];
@@ -67,7 +69,7 @@ reference = ones(1, steps_sim) * 5;
 % reference = sin(0.1*time);
 
 %   set_c:      set of hyperparamter 'c' to choose from
-set_c = [0,logspace(-3, 0, 9)];
+set_c = [0,logspace(-5, 0, 9)];
 
 % NAMED-VALUE INPUTS:
 %   con_params:
@@ -80,26 +82,35 @@ reference = [reference,repmat(reference(end),1,con_params.N)];
 con_params.L = 10;
 %       beta:   forgetting factor
 con_params.beta = 0.95;
-%       lfm:    apply Least-Favorable Model (true/false)
-con_params.lfm = true;
-%       steps:  1 to combine estimation and controller;
-%               2 to have estimation minimizing before and then controller
-con_params.steps = 1;
-%       mpc:    which matlab function to use for the MPC controller
-%               fmincon: more readble but slow (not suitable for big N)
-%               quadprog: fast quadratic solver for sparse mpc
-%                         implementation
+%       mpc:    which strategy to use the MPC
+%               RKF-ext: exted the model to the N time horizon and make RKF
+%                        to that extended model (just starting point x0 is
+%                        given to MPC)
+%               RKF:     compute the RKF on the nominal model (just
+%                        starting point x0 is given to MPC)
+%               LFM:     the time-varying LFM is computed and used for the
+%                        prediction x0 (LFM model and x0 are given to MPC)
+%
+con_params.options = optimoptions('quadprog', ...
+    'OptimalityTolerance', 1e-6, ...
+    'StepTolerance', 1e-6, ...
+    'ConstraintTolerance', 1e-6, ...
+    'Display', 'off');
 
-con_params.options = optimoptions('quadprog', 'Algorithm', 'interior-point-convex', 'Display', 'off');
+if exist("osqp","class")
+    con_params.options = [];
+else
+    warning("consider installing oqsp solver for faster execution")
+end
 
 %% MULTIPLE SIMULATIONS OF THE SAME SYSTEM
 % number of simulations to run: for each simulation one unique seed is used
 % for both type of controllers. Increasing this value increases the
 % execution time of this script and the accuracy of the results
-n_simul = 10;
+n_simul = 5;
 % starting seed: all the simulations are done with the seed <i + s_simul>.
 % in order to make different runs of the script you need to vary this one
-s_simul = 10;
+s_simul = 9000000;
 
 % struct to collect errors along time for Least-Favorable Model
 lfm.ex_pred = NaN(n, steps_sim, n_simul);
@@ -114,13 +125,14 @@ rkf.ey      = NaN(p, steps_sim, n_simul);
 % total time of execution of these long computations
 total_time = 0;
 for i=1:n_simul
+    % if i>2; break; end
     loops = tic;
     % test the LFM formulation of the controller
-    con_params.mpc = "quad-pro";
+    con_params.mpc = "LFM";
     % set the random seed and simulate
     rng(i+s_simul);
     [simX, simY, ~, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
-        steps_sim, init_con, reference, set_c', debug, ...
+        steps_sim, init_con, reference, set_c', debug, verbose, ...
         L=con_params.L, N=con_params.N, beta=con_params.beta, ...
         lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc, ...
         options=con_params.options);
@@ -132,19 +144,19 @@ for i=1:n_simul
         y_hat(:,t) = model_con.C * x_hat(:,t);
     end
     % compute and store errors
-    lfm.ex_pred(:,:,i) = (simX(:,2:end)-x_hat).^2;
-    lfm.ey_pred(:,:,i) = (simY(2:end) - y_hat).^2;
-    lfm.ey(:,:,i)      = (simY(2:end) - reference(1:steps_sim)).^2;
+    lfm.ex_pred(:,:,i) = (simX(:,1:end-1)-x_hat).^2;
+    lfm.ey_pred(:,:,i) = (simY(:,1:end-1) - y_hat).^2;
+    lfm.ey(:,:,i)      = (simY(:,1:end-1) - reference(1:steps_sim)).^2;
 
-    fprintf("sim: %2d/%2d, type: %s, time: %.2e err_x1: %2.5f\n",...
+    fprintf("sim: %2d/%2d, type: %7s, time: %.2e err_x1: %2.5f\n",...
         i, n_simul, con_params.mpc, sum(cpuT), mean(lfm.ex_pred(1,:,i)))
 
     % test the LFM formulation of the controller
-    con_params.mpc = "quadprog";
+    con_params.mpc = "RKF-ext";
     % set the random seed and simulate
     rng(i+s_simul);
     [simX, simY, ~, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
-        steps_sim, init_con, reference, set_c', debug, ...
+        steps_sim, init_con, reference, set_c', debug, verbose, ...
         L=con_params.L, N=con_params.N, beta=con_params.beta, ...
         lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc, ...
         options=con_params.options);
@@ -156,12 +168,12 @@ for i=1:n_simul
         y_hat(:,t) = model_con.C * x_hat(:,t);
     end
     % compute and store errors
-    rkf.ex_pred(:,:,i) = (simX(:,2:end)-x_hat).^2;
-    rkf.ey_pred(:,:,i) = (simY(2:end) - y_hat).^2;
-    rkf.ey(:,:,i)      = (simY(2:end) - reference(1:steps_sim)).^2;
+    rkf.ex_pred(:,:,i) = (simX(:,1:end-1)-x_hat).^2;
+    rkf.ey_pred(:,:,i) = (simY(:,1:end-1) - y_hat).^2;
+    rkf.ey(:,:,i)      = (simY(:,1:end-1) - reference(1:steps_sim)).^2;
 
-    fprintf("sim: %2d/%2d, type: %s, time: %.2e err_x1: %2.5f\n",...
-        i, n_simul, con_params.mpc, sum(cpuT), mean(lfm.ex_pred(1,:,i)))
+    fprintf("sim: %2d/%2d, type: %7s, time: %.2e err_x1: %2.5f\n",...
+        i, n_simul, con_params.mpc, sum(cpuT), mean(rkf.ex_pred(1,:,i)))
 
     % estimate of the remaining time of execution
     current_time = toc(loops);
@@ -174,34 +186,77 @@ end
 % the plot represents the mean of the error at time t for all the
 % simulation so the graph will show for each t <mean_k(e_t^k)>
 figure(Name="Errors evolution")
+stadard_dev = true;
+ti = 1:steps_sim;
+H = rgb2hex(orderedcolors("gem"));
 
+% Prediction errors on state 1
 ax0=subplot(2,2,1);
-plot(mean(lfm.ex_pred(1,:,:),3,"omitnan"))
-hold on;
-plot(mean(rkf.ex_pred(1,:,:),3,"omitnan"))
-legend('lfm', 'rkf');
 title('errors on 1st state');
+% compute and plot mean across multiple runs 
+mean_lfm = mean(lfm.ex_pred(1,:,:),3,"omitnan");
+mean_rkf = mean(rkf.ex_pred(1,:,:),3,"omitnan");
+plot(mean_lfm, Color=H(1)); hold on;
+plot(mean_rkf, Color=H(2)); hold on;
+% compute and plot standard deviations
+if stadard_dev
+    stde_lfm = std(lfm.ex_pred(1,:,:),0,3,"omitnan");
+    stde_rkf = std(rkf.ex_pred(1,:,:),0,3,"omitnan");
+    plot(ti, mean_lfm+stde_lfm,ti, mean_lfm-stde_lfm, Color=H(1), LineStyle="--" ); hold on;
+    plot(ti, mean_rkf+stde_rkf,ti, mean_rkf-stde_rkf, Color=H(2), LineStyle="--" ); hold off;
+end
+legend('lfm', 'rkf');
 
+% Prediction errors on state 1
 ax1=subplot(2,2,2);
-plot(mean(lfm.ex_pred(2,:,:),3,"omitnan"))
-hold on;
-plot(mean(rkf.ex_pred(2,:,:),3,"omitnan"))
-legend('lfm', 'rkf');
 title('errors on 2nd state');
+% compute and plot mean across multiple runs
+mean_lfm = mean(lfm.ex_pred(2,:,:),3,"omitnan");
+mean_rkf = mean(rkf.ex_pred(2,:,:),3,"omitnan");
+plot(mean_lfm, Color=H(1)); hold on
+plot(mean_rkf, Color=H(2)); hold on
+% compute and plot standard deviations
+if stadard_dev
+    stde_lfm = std(lfm.ex_pred(2,:,:),0,3,"omitnan");
+    stde_rkf = std(rkf.ex_pred(2,:,:),0,3,"omitnan");
+    plot(ti, mean_lfm+stde_lfm,ti, mean_lfm-stde_lfm, Color=H(1), LineStyle="--" ); hold on;
+    plot(ti, mean_rkf+stde_rkf,ti, mean_rkf-stde_rkf, Color=H(2), LineStyle="--" ); hold off;
+end
+legend('lfm', 'rkf');
 
+% Prediction errors on output 1
 ax2=subplot(2,2,3);
-plot(mean(lfm.ey_pred(:,:,:),3,"omitnan"))
-hold on;
-plot(mean(rkf.ey_pred(:,:,:),3,"omitnan"))
-legend('lfm', 'rkf');
 title('errors on output prediction');
-
-ax3=subplot(2,2,4);
-plot(mean(lfm.ey(:,:,:),3,"omitnan"))
-hold on;
-plot(mean(rkf.ey(:,:,:),3,"omitnan"))
+% compute and plot mean across multiple runs
+mean_lfm = mean(lfm.ey_pred(1,:,:),3,"omitnan");
+mean_rkf = mean(rkf.ey_pred(1,:,:),3,"omitnan");
+plot(mean_lfm, Color=H(1)); hold on
+plot(mean_rkf, Color=H(2)); hold on
+% compute and plot standard deviations
+if stadard_dev
+    stde_lfm = std(lfm.ey_pred(1,:,:),0,3,"omitnan");
+    stde_rkf = std(rkf.ey_pred(1,:,:),0,3,"omitnan");
+    plot(ti, mean_lfm+stde_lfm,ti, mean_lfm-stde_lfm, Color=H(1), LineStyle="--" ); hold on;
+    plot(ti, mean_rkf+stde_rkf,ti, mean_rkf-stde_rkf, Color=H(2), LineStyle="--" ); hold off;
+end
 legend('lfm', 'rkf');
+
+% Tracking error
+ax3=subplot(2,2,4);
 title('tracking error Y');
+% compute and plot mean across multiple runs
+mean_lfm = mean(lfm.ey(1,:,:),3,"omitnan");
+mean_rkf = mean(rkf.ey(1,:,:),3,"omitnan");
+plot(mean_lfm, Color=H(1)); hold on
+plot(mean_rkf, Color=H(2)); hold on
+% compute and plot standard deviations
+if stadard_dev
+    stde_lfm = std(lfm.ey(1,:,:),0,3,"omitnan");
+    stde_rkf = std(rkf.ey(1,:,:),0,3,"omitnan");
+    plot(ti, mean_lfm+stde_lfm,ti, mean_lfm-stde_lfm, Color=H(1), LineStyle="--" ); hold on;
+    plot(ti, mean_rkf+stde_rkf,ti, mean_rkf-stde_rkf, Color=H(2), LineStyle="--" ); hold off;
+end
+legend('lfm', 'rkf');
 
 xlim([ax0,ax1,ax2,ax3],[1, steps_sim-1])
 
@@ -217,11 +272,11 @@ tab = table(zeros(4,1), zeros(4,1), ...
 tab("ex1_pred","LFM") = {mean(mean(lfm.ex_pred(1,:,:),3,"omitnan"), 2, "omitnan")};
 tab("ex2_pred","LFM") = {mean(mean(lfm.ex_pred(2,:,:),3,"omitnan"), 2, "omitnan")};
 tab("ey_pred","LFM")  = {mean(mean(lfm.ey_pred(:,:,:),3,"omitnan"), 2, "omitnan")};
-tab("ey","LFM")       = {mean(mean(lfm.ey(:,:,:),3,"omitnan"), 2, "omitnan")};
+tab("ey","LFM")       = {mean(mean(lfm.ey(:,10:end,:),3,"omitnan"), 2, "omitnan")};
 
 tab("ex1_pred","RKF") = {mean(mean(rkf.ex_pred(1,:,:),3,"omitnan"), 2, "omitnan")};
 tab("ex2_pred","RKF") = {mean(mean(rkf.ex_pred(2,:,:),3,"omitnan"), 2, "omitnan")};
 tab("ey_pred","RKF")  = {mean(mean(rkf.ey_pred(:,:,:),3,"omitnan"), 2, "omitnan")};
-tab("ey","RKF")       = {mean(mean(rkf.ey(:,:,:),3,"omitnan"), 2, "omitnan")};
+tab("ey","RKF")       = {mean(mean(rkf.ey(:,10:end,:),3,"omitnan"), 2, "omitnan")};
 
 disp(tab)

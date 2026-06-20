@@ -1,6 +1,9 @@
 addpath("Controller/")
 addpath("RobustKalmanFilter/")
+addpath("LeastFavorableModel/")
 rng(1)
+verbose = true;
+
 %% DEFINITION OF VARIABLES FOR THE SIMULATION
 %   model_sim:  true model to simulate
 model_sim.A = [1.1 1; 0 1];         % state -> state
@@ -38,7 +41,7 @@ model_con.K = model_sim.K + delta * randn(size(model_sim.K));
 % model_con.J = model_sim.J + delta * randn(size(model_sim.J));
 
 % MPC config
-model_con.u_min = -2; 
+model_con.u_min = -2;
 model_con.u_max = 2;
 model_con.x_min = [-inf; -inf];
 model_con.x_max = [+inf; +inf];
@@ -47,7 +50,7 @@ model_con.weights.Pf = 1;
 model_con.weights.R = 0.1;
 
 %   steps_sim:  number of step to simulate
-steps_sim = 100;
+steps_sim = 50;
 
 %   init_con:   initial condition
 init_con = [1; 0];
@@ -70,24 +73,34 @@ reference = [reference,repmat(reference(end),1,con_params.N)];
 %       L:      time windows toward the past for estimation
 con_params.L = 10;
 %       beta:   forgetting factor
-con_params.beta = 0.95; 
-%       lfm:    apply Least-Favorable Model (true/false)
-con_params.lfm = true;
-%       steps:  1 to combine estimation and controller;
-%               2 to have estimation minimizing before and then controller
-con_params.steps = 1;
-%       mpc:    which matlab function to use for the MPC controller
-%               fmincon: more readble but slow (not suitable for big N)
-%               quadprog: fast quadratic solver for sparse mpc
-%                         implementation
-con_params.mpc = "quad-pro";
-% con_params.mpc = "quadprog";
+con_params.beta = 1;
+%       mpc:    which strategy to use the MPC
+%               RKF-ext: exted the model to the N time horizon and make RKF
+%                        to that extended model (just starting point x0 is
+%                        given to MPC)
+%               RKF:     compute the RKF on the nominal model (just
+%                        starting point x0 is given to MPC)
+%               LFM:     the time-varying LFM is computed and used for the
+%                        prediction x0 (LFM model and x0 are given to MPC)
+con_params.mpc = "RKF-ext";
+% con_params.mpc = "RKF";
+% con_params.mpc = "LFM";
 
-con_params.options = optimoptions('quadprog', 'Algorithm', 'interior-point-convex', 'Display', 'off');
+con_params.options = optimoptions('quadprog', ...
+    'OptimalityTolerance', 1e-6, ...
+    'StepTolerance', 1e-6, ...
+    'ConstraintTolerance', 1e-6, ...
+    'Display', 'off');
+
+if exist("osqp","class")
+    con_params.options = [];
+else
+    warning("consider installing oqsp solver for faster execution")
+end
 
 %% SIMULATION OF THE WHOLE SYSTEM
 [simX, simY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
-    steps_sim, init_con, reference, set_c', debug, ...
+    steps_sim, init_con, reference, set_c', debug, verbose, ...
     L=con_params.L, N=con_params.N, beta=con_params.beta, ...
     lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc, ...
     options=con_params.options);

@@ -2,7 +2,7 @@ function [x_pred, V_next, G, P_next, lambda] = RobustKalmanFilter(sys, V, x, y, 
 %RobustKalmanFilter one iteration
 % 
 %   [x_pred, V_next, G, P, lambda] = RobustKalmanFilter(sys, V, x_hat, y, c)
-%   compute one interation of the Kalman Filter
+%   compute one prediction ahead of the Kalman Filter
 %
 % INPUT
 %   sys:    struct with fields A, B, C, D, K
@@ -28,17 +28,8 @@ arguments
     c   (1,1) double {mustBeNonnegative(c)}
 end
 
-tmp = sys.C*V*sys.C' + sys.D*sys.D';
-G = (sys.A*V*sys.C' + sys.B*sys.D') / (tmp);
+[V_next, P_next, G, lambda] = RiccatiIteration(sys, V, c);
+
 x_pred = sys.A*x + G * (y - sys.C*x) + sys.K * u;
-
-% nominal conditional covariance matrix
-% P_next = sys.A*V*sys.A' - G * tmp * G' + sys.B*sys.B';
-P_next = (sys.A-G*sys.C)*V*(sys.A-G*sys.C)' + (sys.B-G*sys.D)*(sys.B-G*sys.D)';
-
-% least-favorable covariance matrix
-lambda = LagrangeMultiplier(P_next, c, "fast");
-% V_next = inv( inv(P_next)-eye(size(sys.A))/lambda );
-V_next = ( eye(size(sys.A)) - P_next/lambda ) \ P_next;
 
 end
