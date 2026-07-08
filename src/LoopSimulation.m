@@ -12,19 +12,7 @@ function [simX, simY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, 
 %   reference:  reference signal
 %   set_c:      set of hyperparamter 'c' to choose from
 %   debug:      remove all noise leaving deterministic evolution
-%
-% NAMED-VALUE INPUTS:
-%   con_params:
-%       N:      prediction horizon of MPC
-%       L:      time windows relevant for estimation
-%       beta:   forgetting factor
-%       lfm:    apply Least-Favorable Model (true/false)
-%       steps:  1 to combine estimation and controller;
-%               2 to have estimation minimizing before and then controller
-%       mpc:    which matlab function to use for the MPC controller
-%               fmincon: more readble but slow (not suitable for big N)
-%               quadprog: fast quadratic solver for sparse mpc
-%                         implemntation
+%   con_params: see NAMED-VALUE INPUTS of Controller function
 %
 % OUTPUT:
 %   simX:       simulated states
@@ -43,13 +31,7 @@ arguments
     set_c       (:,1) double
     debug       (1,1) logical
     verbose     (1,1) logical
-    con_params.N        (1,1) double
-    con_params.L        (1,1) double
-    con_params.beta     (1,1) double
-    con_params.lfm      (1,1) logical
-    con_params.steps    (1,1) double
-    con_params.mpc      (1,1) string
-    con_params.options
+    con_params  (1,1) struct
 end
 
 n = size(model_sim.A,1);
@@ -74,9 +56,7 @@ filters = repmat( ...
     "lambda", zeros(1,steps_sim+1), ...      % lagrange multipliers
     "x_pred", zeros(n,steps_sim+1), ...      % prediction initial estimate
     "Vex", eye(n*con_params.N), ...  % nominal V matrix for big leap estimation
-    "xi", zeros(2*n,1), ...
-    "Vlfm", eye(2*n) ...
-    ), ...
+    "Vlfm", eye(2*n)), ...
     size(set_c,1),1);
 % initialize values of c
 for i=1:size(set_c,1)
@@ -104,9 +84,9 @@ for t = 1:steps_sim
     %% Controller and Filter:
     tic;
     % 1) update input of the system
-    [simU(:,t), c_index(t), filters] = Controller(model_con, reference, simY, simU, filters, t, ...
+    [simU(:,t), c_index(t), filters] = Controller(model_con, reference, simY, filters, t, ...
         L=con_params.L, N=con_params.N, beta=con_params.beta, ...
-        lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc, options=con_params.options);
+        mpc=con_params.mpc, options=con_params.options);
 
     % 2) update filters prediction of the next state
     for ff=1:size(set_c,1)

@@ -1,6 +1,7 @@
-addpath("Controller/")
-addpath("RobustKalmanFilter/")
-addpath("LeastFavorableModel/")
+addpath("../Controller/")
+addpath("../RobustKalmanFilter/")
+addpath("../LeastFavorableModel/")
+addpath("../")
 rng(1)
 verbose = false;
 % the same true model and nominal model (used by the controller) is used
@@ -69,7 +70,7 @@ reference = ones(1, steps_sim) * 5;
 % reference = sin(0.1*time);
 
 %   set_c:      set of hyperparamter 'c' to choose from
-set_c = [0,logspace(-5, 0, 9)];
+set_c = [0, logspace(-6, -1, 9)];
 
 % NAMED-VALUE INPUTS:
 %   con_params:
@@ -100,7 +101,7 @@ con_params.options = optimoptions('quadprog', ...
 if exist("osqp","class")
     con_params.options = [];
 else
-    warning("consider installing oqsp solver for faster execution")
+    warning("consider installing osqp solver for faster execution")
 end
 
 %% MULTIPLE SIMULATIONS OF THE SAME SYSTEM
@@ -110,7 +111,7 @@ end
 n_simul = 5;
 % starting seed: all the simulations are done with the seed <i + s_simul>.
 % in order to make different runs of the script you need to vary this one
-s_simul = 9000000;
+s_simul = 5000000;
 
 % struct to collect errors along time for Least-Favorable Model
 lfm.ex_pred = NaN(n, steps_sim, n_simul);
@@ -132,10 +133,8 @@ for i=1:n_simul
     % set the random seed and simulate
     rng(i+s_simul);
     [simX, simY, ~, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
-        steps_sim, init_con, reference, set_c', debug, verbose, ...
-        L=con_params.L, N=con_params.N, beta=con_params.beta, ...
-        lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc, ...
-        options=con_params.options);
+        steps_sim, init_con, reference, set_c, debug, verbose, ...
+        con_params);
     % collect preditions of the filters
     x_hat = zeros(n, steps_sim);
     y_hat = zeros(p, steps_sim);
@@ -156,10 +155,8 @@ for i=1:n_simul
     % set the random seed and simulate
     rng(i+s_simul);
     [simX, simY, ~, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
-        steps_sim, init_con, reference, set_c', debug, verbose, ...
-        L=con_params.L, N=con_params.N, beta=con_params.beta, ...
-        lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc, ...
-        options=con_params.options);
+        steps_sim, init_con, reference, set_c, debug, verbose, ...
+        con_params);
     % collect preditions of the filters
     x_hat = zeros(n, steps_sim);
     y_hat = zeros(p, steps_sim);
@@ -186,97 +183,108 @@ end
 % the plot represents the mean of the error at time t for all the
 % simulation so the graph will show for each t <mean_k(e_t^k)>
 figure(Name="Errors evolution")
-stadard_dev = true;
-ti = 1:steps_sim;
+stadard_dev = false;
+ti = 30:steps_sim;
 H = rgb2hex(orderedcolors("gem"));
 
 % Prediction errors on state 1
 ax0=subplot(2,2,1);
-title('errors on 1st state');
 % compute and plot mean across multiple runs 
-mean_lfm = mean(lfm.ex_pred(1,:,:),3,"omitnan");
-mean_rkf = mean(rkf.ex_pred(1,:,:),3,"omitnan");
-plot(mean_lfm, Color=H(1)); hold on;
-plot(mean_rkf, Color=H(2)); hold on;
+mean_lfm = mean(lfm.ex_pred(1,ti,:),3);
+mean_rkf = mean(rkf.ex_pred(1,ti,:),3);
+plot(ti, mean_lfm, Color=H(1)); hold on;
+plot(ti, mean_rkf, Color=H(2)); hold on;
 % compute and plot standard deviations
 if stadard_dev
-    stde_lfm = std(lfm.ex_pred(1,:,:),0,3,"omitnan");
-    stde_rkf = std(rkf.ex_pred(1,:,:),0,3,"omitnan");
+    stde_lfm = std(lfm.ex_pred(1,ti,:),0,3);
+    stde_rkf = std(rkf.ex_pred(1,ti,:),0,3);
     plot(ti, mean_lfm+stde_lfm,ti, mean_lfm-stde_lfm, Color=H(1), LineStyle="--" ); hold on;
     plot(ti, mean_rkf+stde_rkf,ti, mean_rkf-stde_rkf, Color=H(2), LineStyle="--" ); hold off;
 end
 legend('lfm', 'rkf');
+title('errors on 1st state');
 
 % Prediction errors on state 1
 ax1=subplot(2,2,2);
-title('errors on 2nd state');
 % compute and plot mean across multiple runs
-mean_lfm = mean(lfm.ex_pred(2,:,:),3,"omitnan");
-mean_rkf = mean(rkf.ex_pred(2,:,:),3,"omitnan");
-plot(mean_lfm, Color=H(1)); hold on
-plot(mean_rkf, Color=H(2)); hold on
+mean_lfm = mean(lfm.ex_pred(2,ti,:),3);
+mean_rkf = mean(rkf.ex_pred(2,ti,:),3);
+plot(ti, mean_lfm, Color=H(1)); hold on
+plot(ti, mean_rkf, Color=H(2)); hold on
 % compute and plot standard deviations
 if stadard_dev
-    stde_lfm = std(lfm.ex_pred(2,:,:),0,3,"omitnan");
-    stde_rkf = std(rkf.ex_pred(2,:,:),0,3,"omitnan");
+    stde_lfm = std(lfm.ex_pred(2,ti,:),0,3);
+    stde_rkf = std(rkf.ex_pred(2,ti,:),0,3);
     plot(ti, mean_lfm+stde_lfm,ti, mean_lfm-stde_lfm, Color=H(1), LineStyle="--" ); hold on;
     plot(ti, mean_rkf+stde_rkf,ti, mean_rkf-stde_rkf, Color=H(2), LineStyle="--" ); hold off;
 end
 legend('lfm', 'rkf');
+title('errors on 2nd state');
 
 % Prediction errors on output 1
 ax2=subplot(2,2,3);
-title('errors on output prediction');
 % compute and plot mean across multiple runs
-mean_lfm = mean(lfm.ey_pred(1,:,:),3,"omitnan");
-mean_rkf = mean(rkf.ey_pred(1,:,:),3,"omitnan");
-plot(mean_lfm, Color=H(1)); hold on
-plot(mean_rkf, Color=H(2)); hold on
+mean_lfm = mean(lfm.ey_pred(1,ti,:),3);
+mean_rkf = mean(rkf.ey_pred(1,ti,:),3);
+plot(ti, mean_lfm, Color=H(1)); hold on
+plot(ti, mean_rkf, Color=H(2)); hold on
 % compute and plot standard deviations
 if stadard_dev
-    stde_lfm = std(lfm.ey_pred(1,:,:),0,3,"omitnan");
-    stde_rkf = std(rkf.ey_pred(1,:,:),0,3,"omitnan");
+    stde_lfm = std(lfm.ey_pred(1,ti,:),0,3);
+    stde_rkf = std(rkf.ey_pred(1,ti,:),0,3);
     plot(ti, mean_lfm+stde_lfm,ti, mean_lfm-stde_lfm, Color=H(1), LineStyle="--" ); hold on;
     plot(ti, mean_rkf+stde_rkf,ti, mean_rkf-stde_rkf, Color=H(2), LineStyle="--" ); hold off;
 end
 legend('lfm', 'rkf');
+title('errors on output prediction');
 
 % Tracking error
 ax3=subplot(2,2,4);
-title('tracking error Y');
 % compute and plot mean across multiple runs
-mean_lfm = mean(lfm.ey(1,:,:),3,"omitnan");
-mean_rkf = mean(rkf.ey(1,:,:),3,"omitnan");
-plot(mean_lfm, Color=H(1)); hold on
-plot(mean_rkf, Color=H(2)); hold on
+mean_lfm = mean(lfm.ey(1,ti,:),3);
+mean_rkf = mean(rkf.ey(1,ti,:),3);
+plot(ti, mean_lfm, Color=H(1)); hold on
+plot(ti, mean_rkf, Color=H(2)); hold on
 % compute and plot standard deviations
 if stadard_dev
-    stde_lfm = std(lfm.ey(1,:,:),0,3,"omitnan");
-    stde_rkf = std(rkf.ey(1,:,:),0,3,"omitnan");
+    stde_lfm = std(lfm.ey(1,ti,:),0,3);
+    stde_rkf = std(rkf.ey(1,ti,:),0,3);
     plot(ti, mean_lfm+stde_lfm,ti, mean_lfm-stde_lfm, Color=H(1), LineStyle="--" ); hold on;
     plot(ti, mean_rkf+stde_rkf,ti, mean_rkf-stde_rkf, Color=H(2), LineStyle="--" ); hold off;
 end
 legend('lfm', 'rkf');
+title('tracking error Y');
 
-xlim([ax0,ax1,ax2,ax3],[1, steps_sim-1])
+xlim([ax0,ax1,ax2,ax3],[ti(1), ti(end)])
 
 %% comprehensive results
 % the means are first evaluated along the simulations (the same as before)
 % and then are evaluated along the time. In theory this should not change
 % anything, but in practice this is different when some simulation
 % interrupt before the end.
+ti = 30:steps_sim;
+tab = table(zeros(4,1), zeros(4,1), zeros(4,1), zeros(4,1), ...
+    'RowNames',["ex1_pred","ex2_pred","ey_pred","ey"], ...
+    'VariableNames', ["LFM", "RKF", "LFM (std)", "RKF (std)"]);
 
-tab = table(zeros(4,1), zeros(4,1), ...
-    'RowNames',["ex1_pred","ex2_pred","ey_pred","ey"], 'VariableNames', ["LFM", "RKF"]);
+tab("ex1_pred","LFM") = {mean(mean(lfm.ex_pred(1,ti,:),2),3)};
+tab("ex2_pred","LFM") = {mean(mean(lfm.ex_pred(2,ti,:),2),3)};
+tab("ey_pred","LFM")  = {mean(mean(lfm.ey_pred(:,ti,:),2),3)};
+tab("ey","LFM")       = {mean(mean(lfm.ey(:,ti,:),2),3)};
 
-tab("ex1_pred","LFM") = {mean(mean(lfm.ex_pred(1,:,:),3,"omitnan"), 2, "omitnan")};
-tab("ex2_pred","LFM") = {mean(mean(lfm.ex_pred(2,:,:),3,"omitnan"), 2, "omitnan")};
-tab("ey_pred","LFM")  = {mean(mean(lfm.ey_pred(:,:,:),3,"omitnan"), 2, "omitnan")};
-tab("ey","LFM")       = {mean(mean(lfm.ey(:,10:end,:),3,"omitnan"), 2, "omitnan")};
+tab("ex1_pred","RKF") = {mean(mean(rkf.ex_pred(1,ti,:),2),3)};
+tab("ex2_pred","RKF") = {mean(mean(rkf.ex_pred(2,ti,:),2),3)};
+tab("ey_pred","RKF")  = {mean(mean(rkf.ey_pred(:,ti,:),2),3)};
+tab("ey","RKF")       = {mean(mean(rkf.ey(:,ti,:),2),3)};
 
-tab("ex1_pred","RKF") = {mean(mean(rkf.ex_pred(1,:,:),3,"omitnan"), 2, "omitnan")};
-tab("ex2_pred","RKF") = {mean(mean(rkf.ex_pred(2,:,:),3,"omitnan"), 2, "omitnan")};
-tab("ey_pred","RKF")  = {mean(mean(rkf.ey_pred(:,:,:),3,"omitnan"), 2, "omitnan")};
-tab("ey","RKF")       = {mean(mean(rkf.ey(:,10:end,:),3,"omitnan"), 2, "omitnan")};
+tab("ex1_pred","LFM (std)") = {mean(std(lfm.ex_pred(1,ti,:),0,2),3)};
+tab("ex2_pred","LFM (std)") = {mean(std(lfm.ex_pred(2,ti,:),0,2),3)};
+tab("ey_pred","LFM (std)")  = {mean(std(lfm.ey_pred(:,ti,:),0,2),3)};
+tab("ey","LFM (std)")       = {mean(std(lfm.ey(:,ti,:),0,2),3)};
+
+tab("ex1_pred","RKF (std)") = {mean(std(rkf.ex_pred(1,ti,:),0,2),3)};
+tab("ex2_pred","RKF (std)") = {mean(std(rkf.ex_pred(2,ti,:),0,2),3)};
+tab("ey_pred","RKF (std)")  = {mean(std(rkf.ey_pred(:,ti,:),0,2),3)};
+tab("ey","RKF (std)")       = {mean(std(rkf.ey(:,ti,:),0,2),3)};
 
 disp(tab)

@@ -61,7 +61,7 @@ reference = ones(1, steps_sim) * 5;
 % reference = sin(0.1*time);
 
 %   set_c:      set of hyperparamter 'c' to choose from
-set_c = [0,logspace(-3, 0, 9)];
+set_c = [0, logspace(-6, -1, 9)];
 
 % NAMED-VALUE INPUTS:
 %   con_params:
@@ -95,15 +95,13 @@ con_params.options = optimoptions('quadprog', ...
 if exist("osqp","class")
     con_params.options = [];
 else
-    warning("consider installing oqsp solver for faster execution")
+    warning("consider installing osqp solver for faster execution")
 end
 
 %% SIMULATION OF THE WHOLE SYSTEM
 [simX, simY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
-    steps_sim, init_con, reference, set_c', debug, verbose, ...
-    L=con_params.L, N=con_params.N, beta=con_params.beta, ...
-    lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc, ...
-    options=con_params.options);
+    steps_sim, init_con, reference, set_c, debug, verbose, ...
+    con_params);
 
 %% report and analysis
 % OUTPUT OF THE SIMULATION:

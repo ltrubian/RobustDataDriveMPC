@@ -147,7 +147,7 @@ V(:,:,1)=eye(n);    V1(:,:,1)=eye(n);
 % iterative part
 for k=1:T
     [x(k+1,:), V(:,:,k+1), G(:,:,k+1), P(:,:,k+1), th(k)]=rkiteration(A,B,C,D,V(:,:,k),0,c,x(k,:),y(k,:)); 
-    [x1(k+1,:), V1(:,:,k+1), G1(:,:,k+1), P1(:,:,k+1), th1(k)]=RobustKalmanFilter(sys,V1(:,:,k),x1(k,:),y(k,:),zeros(2,1),c);
+    [x1(k+1,:), V1(:,:,k+1), G1(:,:,k+1), P1(:,:,k+1), th1(k)]=RobustKalmanFilter(sys,V1(:,:,k),x1(k,:),y(k,:),zeros(n,m),c);
 end
 % resize
 x=x(2:T+1,:);       x1=x1(2:T+1,:);

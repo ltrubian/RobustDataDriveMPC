@@ -35,3 +35,6 @@ codegen/
 # buildtool cache folder
 .buildtool/
 
+# OSQP folder
+# download the proper platform specific using the install script
+osqp/

@@ -1,4 +1,4 @@
-function [simU, c_index, filters] = Controller(model_con, reference, simY, simU, filters, t, con_params)
+function [simU, c_index, filters] = Controller(model_con, reference, simY, filters, t, con_params)
 %CONTROLLER compute the inputs
 %
 %       <usage here>
@@ -15,9 +15,6 @@ function [simU, c_index, filters] = Controller(model_con, reference, simY, simU,
 %       N:      prediction horizon of MPC
 %       L:      time windows relevant for estimation
 %       beta:   forgetting factor
-%       lfm:    apply Least-Favorable Model (true/false)
-%       steps:  1 to combine estimation and controller;
-%               2 to have estimation minimizing before and then controller
 %       mpc:    which strategy to use the MPC
 %               RKF-ext: exted the model to the N time horizon and make RKF
 %                        to that extended model (just starting point x0 is
@@ -35,14 +32,11 @@ arguments
     model_con   (1,1) struct
     reference   (:,:) double
     simY        (:,:) double
-    simU        (:,:) double
     filters     (:,:) struct
     t           (1,1) {mustBeInteger(t)}
     con_params.N        (1,1) double {mustBeInteger(con_params.N)}
     con_params.L        (1,1) double {mustBeInteger(con_params.L)}
-    con_params.beta     (1,1) double %{mustBeBetween(con_params.beta,0,1)}
-    con_params.lfm      (1,1) logical = true
-    con_params.steps    (1,1) double {mustBeMember(con_params.steps,[1,2])} = 1
+    con_params.beta     (1,1) double {mustBeBetween(con_params.beta,0,1)}
     con_params.mpc      (1,1) string {mustBeMember(con_params.mpc,["RKF", "RKF-ext", "LFM"])} = "RKF"
     con_params.options
 end
