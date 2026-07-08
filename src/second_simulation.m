@@ -1,44 +1,47 @@
 addpath("Controller/")
 addpath("RobustKalmanFilter/")
+addpath("LeastFavorableModel/")
 rng(1)
+verbose = true;
+
 %% DEFINITION OF VARIABLES FOR THE SIMULATION
 %   model_sim:  true model to simulate
-model_sim.A = [1.1 1; 0 1];
-model_sim.B = [0.5; 1];
-model_sim.C = [1 0];
-model_sim.D = [0.1];
+model_sim.A = [1.1 1; 0 1];         % state -> state
+model_sim.B = [0.5 0.2 0.1; 0.3 0.2 0.01];   % noise -> state
+model_sim.C = [1 0];                % state -> output
+model_sim.D = [0.1, 0.05, 0.01];          % noise -> output
+
+model_sim.K = [0.5; 1];             % input -> state
+% model_sim.J = [0.1; 0.05];          % input -> output
 
 n = size(model_sim.A,1);
 p = size(model_sim.C,1);
-m = size(model_sim.B,2);
+m = size(model_sim.K,2);
 
 % Struct containing all the gains for noises/disturbances
-gains = struct( ...
-    "delta", 0.1, ...      % model perturbation gain
-    "proc", 0.05, ...       % process noise gain  
-    "meas", 0.03 ...        % measurement noise gain
-    );
+delta = 0.01;      % model perturbation gain
 
 % "DEBUG MODE": if True set all the noise/perturbation gains to 0
 % Use to check if the MPC controller works in ideal conditions
 debug = false;
 
 if debug
-    gains.delta = 0;
-    gains.proc = 0;
-    gains.meas = 0;
+    delta = 0;
 end
 
 %   model_con:  nominal (perturbed) model used by MPC controller. The
 %   perturbation of each entry is the product of the gain delta and a
-%   random matrix with compatible size
-model_con.A = model_sim.A + gains.delta * randn(size(model_sim.A));
-model_con.B = model_sim.B + gains.delta * randn(size(model_sim.B));
-model_con.C = model_sim.C + gains.delta * randn(size(model_sim.C));
-model_con.D = model_sim.D + gains.delta * randn(size(model_sim.D));
+%   random matrix with compatible sie
+model_con.A = model_sim.A + delta * randn(size(model_sim.A));
+model_con.B = model_sim.B + delta * randn(size(model_sim.B));
+model_con.C = model_sim.C + delta * randn(size(model_sim.C));
+model_con.D = model_sim.D + delta * randn(size(model_sim.D));
+
+model_con.K = model_sim.K + delta * randn(size(model_sim.K));
+% model_con.J = model_sim.J + delta * randn(size(model_sim.J));
 
 % MPC config
-model_con.u_min = -2; 
+model_con.u_min = -2;
 model_con.u_max = 2;
 model_con.x_min = [-inf; -inf];
 model_con.x_max = [+inf; +inf];
@@ -47,7 +50,7 @@ model_con.weights.Pf = 1;
 model_con.weights.R = 0.1;
 
 %   steps_sim:  number of step to simulate
-steps_sim = 100;
+steps_sim = 50;
 
 %   init_con:   initial condition
 init_con = [1; 0];
@@ -58,7 +61,7 @@ reference = ones(1, steps_sim) * 5;
 % reference = sin(0.1*time);
 
 %   set_c:      set of hyperparamter 'c' to choose from
-set_c = logspace(-6, -3, 10);
+set_c = [0,logspace(-3, 0, 9)];
 
 % NAMED-VALUE INPUTS:
 %   con_params:
@@ -70,23 +73,37 @@ reference = [reference,repmat(reference(end),1,con_params.N)];
 %       L:      time windows toward the past for estimation
 con_params.L = 10;
 %       beta:   forgetting factor
-con_params.beta = 0.95; 
-%       lfm:    apply Least-Favorable Model (true/false)
-con_params.lfm = true;
-%       steps:  1 to combine estimation and controller;
-%               2 to have estimation minimizing before and then controller
-con_params.steps = 1;
-%       mpc:    which matlab function to use for the MPC controller
-%               fmincon: more readble but slow (not suitable for big N)
-%               quadprog: fast quadratic solver for sparse mpc
-%                         implementation
-con_params.mpc = "quadprog";
+con_params.beta = 1;
+%       mpc:    which strategy to use the MPC
+%               RKF-ext: exted the model to the N time horizon and make RKF
+%                        to that extended model (just starting point x0 is
+%                        given to MPC)
+%               RKF:     compute the RKF on the nominal model (just
+%                        starting point x0 is given to MPC)
+%               LFM:     the time-varying LFM is computed and used for the
+%                        prediction x0 (LFM model and x0 are given to MPC)
+con_params.mpc = "RKF-ext";
+% con_params.mpc = "RKF";
+% con_params.mpc = "LFM";
+
+con_params.options = optimoptions('quadprog', ...
+    'OptimalityTolerance', 1e-6, ...
+    'StepTolerance', 1e-6, ...
+    'ConstraintTolerance', 1e-6, ...
+    'Display', 'off');
+
+if exist("osqp","class")
+    con_params.options = [];
+else
+    warning("consider installing oqsp solver for faster execution")
+end
 
 %% SIMULATION OF THE WHOLE SYSTEM
 [simX, simY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
-    steps_sim, init_con, reference, set_c', gains, ...
+    steps_sim, init_con, reference, set_c', debug, verbose, ...
     L=con_params.L, N=con_params.N, beta=con_params.beta, ...
-    lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc);
+    lfm=con_params.lfm, steps=con_params.steps, mpc=con_params.mpc, ...
+    options=con_params.options);
 
 %% report and analysis
 % OUTPUT OF THE SIMULATION:
@@ -114,14 +131,14 @@ end
 % Plot results
 figure;
 
-subplot(3,1,1);
-plot(simX(1,:));
+ax1=subplot(3,1,1);
+plot((simX(1,2:end)-x_hat(1,:)).^2);
 hold on;
-plot(x_hat(1,:));
-legend('True State','RKF Estimate');
+plot((simX(2,2:end)-x_hat(2,:)).^2);
+legend('er_1', 'er_2');
 title('True VS Estimated States');
 
-subplot(3,1,2);
+ax2=subplot(3,1,2);
 plot(simY(1,:));
 hold on;
 plot(y_hat(1,:));
@@ -130,7 +147,8 @@ plot(reference(1:steps_sim));
 legend('True Output','RKF Estimate');
 title('True VS Estimated Output');
 
-subplot(3,1,3);
+ax3=subplot(3,1,3);
 stairs(simU(1,:));
 title('Ingresso di Controllo u');
 
+xlim([ax1,ax2,ax3],[1, steps_sim])

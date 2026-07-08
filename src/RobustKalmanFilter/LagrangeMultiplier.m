@@ -1,4 +1,4 @@
-function lambda1 = LagrangeMultiplier(P, c, type)
+function lambda2 = LagrangeMultiplier(P, c, type)
 %LagrangeMultiplier
 %   lambda2 = LagrangeMultiplier(P, c, type) finds the lagrange multiplier
 %   using secant method
@@ -13,7 +13,7 @@ function lambda1 = LagrangeMultiplier(P, c, type)
 arguments
     P    (:,:) double
     c    (1,1) double {mustBeNonnegative(c)}
-    type (1,:) string {mustBeMember(type,["fast", "normal"])} = "normal"
+    type (1,:) string % {mustBeMember(type,["fast", "normal"])} = "normal"
 end
 n = size(P,1);
 e = eig(P);
@@ -22,32 +22,27 @@ switch type
     case "normal"
         gamfun = @(lam) trace(inv(eye(n) - P/lam) - eye(n)) + log(det(eye(n) - P/lam)) - c*2;
     case "fast"
-        gamfun = @(lam) sum(e./(lam-e)) + log(prod(1-e./lam)) - c*2;
+        gamfun = @(lam) sum(e./(lam-e) + log(1-e./lam)) - c*2;
 end
 
 lambda0 = max(e) * 1.01;
-lambda1 = lambda0 * 2;
-
+lambda1 = lambda0 * 10;
 gamma0 = gamfun(lambda0);
 gamma1 = gamfun(lambda1);
+gamma2 = 1;
+lambda2 = lambda0;
 
-while abs(gamma1) >= 1e-9
-    if sign(gamma1) == sign(gamma0)
-        lambda2 = lambda1 - (gamma1 * (lambda1 - lambda0) / (gamma1 - gamma0));
-        % --- next iteration values ---
-        lambda0 = lambda1; lambda1 = lambda2;
-        gamma0 = gamma1;   gamma1 = gamfun(lambda2);
+while abs(gamma2) >= 1e-9 && abs(lambda0 - lambda1) > 1e-9
+
+    lambda2 = (lambda0 * gamma1 - gamma0 * lambda1 ) / (gamma1 - gamma0);
+    gamma2 = gamfun(lambda2);
+
+    % --- next iteration values ---
+    if sign(gamma2) ~= sign(gamma1)
+        lambda0 = lambda1; gamma0 = gamma1;
     else
-        lambda2 = (lambda0 * gamma1 *0.5 - gamma0 * lambda1 ) / (gamma1 *0.5 - gamma0);
-        gamma2 = gamfun(lambda2);
-        % --- next iteration values ---
-        if sign(gamma2) == sign(gamma1)
-            lambda1 = lambda2;
-            gamma1 = gamma2;
-        else
-            lambda0 = lambda2;
-            gamma0 = gamma2;
-        end
+        gamma0 = (gamma0 - gamma2) / (1 + gamma2 /gamma1 )^2;
     end
+    lambda1 = lambda2; gamma1 = gamma2;
 end
 end

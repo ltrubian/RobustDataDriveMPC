@@ -36,7 +36,7 @@ classdef testRobustKalmanFilter < matlab.unittest.TestCase
             if c>cN
                 warning('Tolerance c is too large: the filter gain may not exist')
             end
-            testCase.sys = struct("A",A,"B",B,"C",C,"D",D);
+            testCase.sys = struct("A",A,"B",B,"C",C,"D",D, "K", zeros(n,m));
         end
     end
     methods (Test)
