@@ -1,4 +1,4 @@
-function [u_opt, cost_opt] = MPCOptimizer(x0, A, B, C, weights, N, reference, x_min, x_max, u_min, u_max, options)
+function [u_opt, cost_opt] = MPCOptimizer(x0, A, K, C, weights, N, reference, x_min, x_max, u_min, u_max, options)
 %MPCOptimizer compute the solution of the MPC problem for linear case
 %
 %       <usage here>
@@ -6,7 +6,7 @@ function [u_opt, cost_opt] = MPCOptimizer(x0, A, B, C, weights, N, reference, x_
 % INPUT:
 %   x0          initial condition
 %   A           state matrix
-%   B           input-state matrix
+%   K           input-state matrix
 %   C           state-output matrix
 %   weights     weights of the costs (Q,Pf for output, R for input)
 %   N           prediction horizon
@@ -23,7 +23,7 @@ function [u_opt, cost_opt] = MPCOptimizer(x0, A, B, C, weights, N, reference, x_
 arguments(Input)
     x0          (:,1)   double
     A           (:,:,:) double
-    B           (:,:)   double
+    K           (:,:)   double
     C           (:,:,:) double
     weights     (1,1) struct
     N           (1,1) double
@@ -39,7 +39,7 @@ arguments(Output)
     cost_opt    (1,1) double
 end
 % check and set state dimension
-[nb, m] = size(B);
+[nb, m] = size(K);
 [na, ~, timeA] = size(A);
 [~, nc, timeC] = size(C);
 assert(na == nb && na == nc, "state dimension do not match")
@@ -69,7 +69,7 @@ lb = [repmat(x_min, N, 1); repmat(u_min, N, 1)];
 ub = [repmat(x_max, N, 1); repmat(u_max, N, 1)];
 
 % MATRICES to construct EQUALITY CONTRAINT (state evolution constraint)
-Aeq = sparse([speye(N*n) - A_blk, kron(speye(N), -B)]);
+Aeq = sparse([speye(N*n) - A_blk, kron(speye(N), -K)]);
 beq = x0;
 
 % COST MATRICES

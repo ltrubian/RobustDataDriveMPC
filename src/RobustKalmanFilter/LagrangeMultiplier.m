@@ -41,7 +41,13 @@ while abs(gamma2) >= 1e-9 && abs(lambda0 - lambda1) > 1e-9
     if sign(gamma2) ~= sign(gamma1)
         lambda0 = lambda1; gamma0 = gamma1;
     else
-        gamma0 = (gamma0 - gamma2) / (1 + gamma2 /gamma1 )^2;
+        % regula-falsi, Anderson & Björk modification
+        m = 1 - gamma2/gamma1;
+        if m > 0
+            gamma0 = gamma0 * m;
+        else
+            gamma0 = gamma0 / 2;
+        end
     end
     lambda1 = lambda2; gamma1 = gamma2;
 end
