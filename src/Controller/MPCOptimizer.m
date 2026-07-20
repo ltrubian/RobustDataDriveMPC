@@ -96,7 +96,7 @@ if ~isempty(options)
         error(solver_info.message)
     end
     u_opt  = z_opt(idx:end);
-    u_opt = u_opt(1:m);
+    % u_opt = u_opt(1:m);
 else
     l = [beq; lb];
     u = [beq; ub];
@@ -108,7 +108,7 @@ else
         'eps_abs', 1e-8, 'eps_rel', 1e-8, 'polish', true);
     res = prob.solve();
 
-    u_opt = res.x(idx:idx+m-1);
+    u_opt = res.x(idx:end);
     cost_opt = res.info.obj_val;
 end
 end

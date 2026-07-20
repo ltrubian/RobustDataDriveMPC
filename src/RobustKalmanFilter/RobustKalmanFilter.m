@@ -1,4 +1,4 @@
-function [x_pred, V_next, G, P_next, lambda] = RobustKalmanFilter(sys, V, x, y, u, c)
+function [x_pred, V_next, G, P_next, lambda] = RobustKalmanFilter(sys, V, x, y, c)
 %RobustKalmanFilter one iteration
 % 
 %   [x_pred, V_next, G, P, lambda] = RobustKalmanFilter(sys, V, x_hat, y, c)
@@ -9,7 +9,6 @@ function [x_pred, V_next, G, P_next, lambda] = RobustKalmanFilter(sys, V, x, y, 
 %   V:      least-favorable covariance matrix
 %   x:      current state
 %   y:      current output
-%   u:      current input of the system
 %   c:      radius of the ambiguity set
 % OUTPUT
 %   x_pred: prediction
@@ -24,12 +23,11 @@ arguments
     V   (:,:) double
     x   (:,1) double
     y   (:,1) double
-    u   (:,1) double
     c   (1,1) double {mustBeNonnegative(c)}
 end
 
 [V_next, P_next, G, lambda] = RiccatiIteration(sys, V, c);
 
-x_pred = sys.A*x + G * (y - sys.C*x) + sys.K * u;
+x_pred = sys.A*x + G * (y - sys.C*x);
 
 end

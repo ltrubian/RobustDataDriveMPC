@@ -11,7 +11,7 @@ model_sim.B = [0.5 0.2 0.1; 0.3 0.2 0.01];   % noise -> state
 model_sim.C = [1 0];                % state -> output
 model_sim.D = [0.1, 0.05, 0.01];          % noise -> output
 
-model_sim.K = [0.5; 1];             % input -> state
+model_sim.K = [0.5 0; 1 0.1];             % input -> state
 % model_sim.J = [0.1; 0.05];          % input -> output
 
 n = size(model_sim.A,1);
@@ -19,7 +19,7 @@ p = size(model_sim.C,1);
 m = size(model_sim.K,2);
 
 % Struct containing all the gains for noises/disturbances
-delta = 0.01;      % model perturbation gain
+delta = 0.05;      % model perturbation gain
 
 % "DEBUG MODE": if True set all the noise/perturbation gains to 0
 % Use to check if the MPC controller works in ideal conditions
@@ -41,13 +41,13 @@ model_con.K = model_sim.K + delta * randn(size(model_sim.K));
 % model_con.J = model_sim.J + delta * randn(size(model_sim.J));
 
 % MPC config
-model_con.u_min = -2;
-model_con.u_max = 2;
+model_con.u_min = [-2, -2];
+model_con.u_max = [2, 2];
 model_con.x_min = [-inf; -inf];
 model_con.x_max = [+inf; +inf];
-model_con.weights.Q = 1;
-model_con.weights.Pf = 1;
-model_con.weights.R = 0.1;
+model_con.weights.Q = 1*eye(p);
+model_con.weights.Pf = 1*eye(p);
+model_con.weights.R = 0.1*eye(m);
 
 %   steps_sim:  number of step to simulate
 steps_sim = 50;
@@ -56,7 +56,7 @@ steps_sim = 50;
 init_con = [1; 0];
 
 %   reference:  reference signal
-reference = ones(1, steps_sim) * 5;
+reference = [zeros(1, 10), ones(1, steps_sim-10) * 5];
 % time = 1:steps_sim;
 % reference = sin(0.1*time);
 
@@ -82,8 +82,8 @@ con_params.beta = 1;
 %                        starting point x0 is given to MPC)
 %               LFM:     the time-varying LFM is computed and used for the
 %                        prediction x0 (LFM model and x0 are given to MPC)
-con_params.mpc = "RKF-ext";
-% con_params.mpc = "RKF";
+% con_params.mpc = "RKF-ext";
+con_params.mpc = "RKF";
 % con_params.mpc = "LFM";
 
 con_params.options = optimoptions('quadprog', ...
@@ -122,7 +122,7 @@ end
 x_hat = zeros(n, steps_sim);
 y_hat = zeros(p, steps_sim);
 for t=1:steps_sim
-    x_hat(:,t) = filters(c_index(t)).x_pred(:,t);
+    x_hat(:,t) = filters(c_index(t)).x_pred(1:n,t);
     y_hat(:,t) = model_con.C * x_hat(:,t);
 end
 

@@ -20,7 +20,7 @@ model_sim.B = [0.5 0.2 0.1; 0.3 0.2 0.01];   % noise -> state
 model_sim.C = [1 0];                % state -> output
 model_sim.D = [0.1, 0.05, 0.01];          % noise -> output
 
-model_sim.K = [0.5; 1];             % input -> state
+model_sim.K = [0.5 0; 1 0.1];             % input -> state
 % model_sim.J = [0.1; 0.05];          % input -> output
 
 n = size(model_sim.A,1);
@@ -28,7 +28,7 @@ p = size(model_sim.C,1);
 m = size(model_sim.K,2);
 
 % Struct containing all the gains for noises/disturbances
-delta = 0.01;      % model perturbation gain
+delta = 0.05;      % model perturbation gain
 
 % "DEBUG MODE": if True set all the noise/perturbation gains to 0
 % Use to check if the MPC controller works in ideal conditions
@@ -50,13 +50,13 @@ model_con.K = model_sim.K + delta * randn(size(model_sim.K));
 % model_con.J = model_sim.J + delta * randn(size(model_sim.J));
 
 % MPC config
-model_con.u_min = -2;
-model_con.u_max = 2;
+model_con.u_min = [-2, -2];
+model_con.u_max = [2, 2];
 model_con.x_min = [-inf; -inf];
 model_con.x_max = [+inf; +inf];
 model_con.weights.Q = 1;
 model_con.weights.Pf = 1;
-model_con.weights.R = 0.1;
+model_con.weights.R = 0.1*eye(2);
 
 %   steps_sim:  number of step to simulate
 steps_sim = 50;
@@ -108,7 +108,7 @@ end
 % number of simulations to run: for each simulation one unique seed is used
 % for both type of controllers. Increasing this value increases the
 % execution time of this script and the accuracy of the results
-n_simul = 500;
+n_simul = 10;
 % starting seed: all the simulations are done with the seed <i + s_simul>.
 % in order to make different runs of the script you need to vary this one
 s_simul = 5000000;
@@ -139,7 +139,7 @@ for i=1:n_simul
     x_hat = zeros(n, steps_sim);
     y_hat = zeros(p, steps_sim);
     for t=1:steps_sim
-        x_hat(:,t) = filters(c_index(t)).x_pred(:,t);
+        x_hat(:,t) = filters(c_index(t)).x_pred(1:n,t);
         y_hat(:,t) = model_con.C * x_hat(:,t);
     end
     % compute and store errors
@@ -151,7 +151,7 @@ for i=1:n_simul
         i, n_simul, con_params.mpc, sum(cpuT), mean(lfm.ex_pred(1,:,i)))
 
     % test the LFM formulation of the controller
-    con_params.mpc = "RKF-ext";
+    con_params.mpc = "RKF";
     % set the random seed and simulate
     rng(i+s_simul);
     [simX, simY, ~, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
@@ -161,7 +161,7 @@ for i=1:n_simul
     x_hat = zeros(n, steps_sim);
     y_hat = zeros(p, steps_sim);
     for t=1:steps_sim
-        x_hat(:,t) = filters(c_index(t)).x_pred(:,t);
+        x_hat(:,t) = filters(c_index(t)).x_pred(1:n,t);
         y_hat(:,t) = model_con.C * x_hat(:,t);
     end
     % compute and store errors
