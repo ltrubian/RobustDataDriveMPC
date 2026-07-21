@@ -41,8 +41,8 @@ model_con.K = model_sim.K + delta * randn(size(model_sim.K));
 % model_con.J = model_sim.J + delta * randn(size(model_sim.J));
 
 % MPC config
-model_con.u_min = [-2, -2];
-model_con.u_max = [2, 2];
+model_con.u_min = -2 * ones(1, m);
+model_con.u_max = 2 * ones(1, m);
 model_con.x_min = [-inf; -inf];
 model_con.x_max = [+inf; +inf];
 model_con.weights.Q = 1*eye(p);

@@ -15,13 +15,13 @@ verbose = false;
 
 %% DEFINITION OF VARIABLES FOR THE SIMULATION
 %   model_sim:  true model to simulate
-model_sim.A = [1.1 1; 0 1];         % state -> state
-model_sim.B = [0.5 0.2 0.1; 0.3 0.2 0.01];   % noise -> state
-model_sim.C = [1 0];                % state -> output
-model_sim.D = [0.1, 0.05, 0.01];          % noise -> output
+model_sim.A = [1.1 1; 0 1];                 % state -> state
+model_sim.B = [0.5 0.2 0.1; 0.3 0.2 0.01];  % noise -> state
+model_sim.C = [1 0];                        % state -> output
+model_sim.D = [0.1, 0.05, 0.01];            % noise -> output
 
-model_sim.K = [0.5 0; 1 0.1];             % input -> state
-% model_sim.J = [0.1; 0.05];          % input -> output
+model_sim.K = [0.5 0; 1 0.1];               % input -> state
+% model_sim.J = [0.1; 0.05];                % input -> output
 
 n = size(model_sim.A,1);
 p = size(model_sim.C,1);
@@ -50,16 +50,16 @@ model_con.K = model_sim.K + delta * randn(size(model_sim.K));
 % model_con.J = model_sim.J + delta * randn(size(model_sim.J));
 
 % MPC config
-model_con.u_min = [-2, -2];
-model_con.u_max = [2, 2];
+model_con.u_min = -2 * ones(1, m);
+model_con.u_max = 2 * ones(1, m);
 model_con.x_min = [-inf; -inf];
 model_con.x_max = [+inf; +inf];
-model_con.weights.Q = 1;
-model_con.weights.Pf = 1;
-model_con.weights.R = 0.1*eye(2);
+model_con.weights.Q = 1*eye(p);
+model_con.weights.Pf = 1*eye(p);
+model_con.weights.R = 0.1*eye(m);
 
 %   steps_sim:  number of step to simulate
-steps_sim = 50;
+steps_sim = 100;
 
 %   init_con:   initial condition
 init_con = [1; 0];
@@ -108,7 +108,7 @@ end
 % number of simulations to run: for each simulation one unique seed is used
 % for both type of controllers. Increasing this value increases the
 % execution time of this script and the accuracy of the results
-n_simul = 10;
+n_simul = 100;
 % starting seed: all the simulations are done with the seed <i + s_simul>.
 % in order to make different runs of the script you need to vary this one
 s_simul = 5000000;
@@ -189,7 +189,7 @@ H = rgb2hex(orderedcolors("gem"));
 
 % Prediction errors on state 1
 ax0=subplot(2,2,1);
-% compute and plot mean across multiple runs 
+% compute and plot mean across multiple runs
 mean_lfm = mean(lfm.ex_pred(1,ti,:),3, "omitnan");
 mean_rkf = mean(rkf.ex_pred(1,ti,:),3, "omitnan");
 plot(ti, mean_lfm, Color=H(1)); hold on;
