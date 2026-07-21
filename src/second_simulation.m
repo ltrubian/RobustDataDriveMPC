@@ -6,13 +6,13 @@ verbose = true;
 
 %% DEFINITION OF VARIABLES FOR THE SIMULATION
 %   model_sim:  true model to simulate
-model_sim.A = [1.1 1; 0 1];         % state -> state
-model_sim.B = [0.5 0.2 0.1; 0.3 0.2 0.01];   % noise -> state
-model_sim.C = [1 0];                % state -> output
-model_sim.D = [0.1, 0.05, 0.01];          % noise -> output
+model_sim.A = [1.1 1; 0 1];                 % state -> state
+model_sim.B = [0.5 0.2 0.1; 0.3 0.2 0.01];  % noise -> state
+model_sim.C = [1 0];                        % state -> output
+model_sim.D = [0.1, 0.05, 0.01];            % noise -> output
 
-model_sim.K = [0.5 0; 1 0.1];             % input -> state
-% model_sim.J = [0.1; 0.05];          % input -> output
+model_sim.K = [0.5 0; 1 0.1];               % input -> state
+% model_sim.J = [0.1; 0.05];                % input -> output
 
 n = size(model_sim.A,1);
 p = size(model_sim.C,1);
@@ -147,6 +147,8 @@ title('True VS Estimated Output');
 
 ax3=subplot(3,1,3);
 stairs(simU(1,:));
+hold on;
+stairs(simU(2,:));
 title('Ingresso di Controllo u');
 
 xlim([ax1,ax2,ax3],[1, steps_sim])
