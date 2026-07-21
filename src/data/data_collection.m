@@ -14,60 +14,22 @@ verbose = false;
 %                     controller type
 
 %% DEFINITION OF VARIABLES FOR THE SIMULATION
-%   model_sim:  true model to simulate
-model_sim.A = [1.1 1; 0 1];                 % state -> state
-model_sim.B = [0.5 0.2 0.1; 0.3 0.2 0.01];  % noise -> state
-model_sim.C = [1 0];                        % state -> output
-model_sim.D = [0.1, 0.05, 0.01];            % noise -> output
-
-model_sim.K = [0.5 0; 1 0.1];               % input -> state
-% model_sim.J = [0.1; 0.05];                % input -> output
-
-n = size(model_sim.A,1);
-p = size(model_sim.C,1);
-m = size(model_sim.K,2);
-
-% Struct containing all the gains for noises/disturbances
-delta = 0.05;      % model perturbation gain
-
 % "DEBUG MODE": if True set all the noise/perturbation gains to 0
 % Use to check if the MPC controller works in ideal conditions
 debug = false;
+% Struct containing all the gains for noises/disturbances
+delta = 0.05;      % model perturbation gain
 
-if debug
-    delta = 0;
-end
-
-%   model_con:  nominal (perturbed) model used by MPC controller. The
-%   perturbation of each entry is the product of the gain delta and a
-%   random matrix with compatible sie
-model_con.A = model_sim.A + delta * randn(size(model_sim.A));
-model_con.B = model_sim.B + delta * randn(size(model_sim.B));
-model_con.C = model_sim.C + delta * randn(size(model_sim.C));
-model_con.D = model_sim.D + delta * randn(size(model_sim.D));
-
-model_con.K = model_sim.K + delta * randn(size(model_sim.K));
-% model_con.J = model_sim.J + delta * randn(size(model_sim.J));
-
-% MPC config
-model_con.u_min = -2 * ones(1, m);
-model_con.u_max = 2 * ones(1, m);
-model_con.x_min = [-inf; -inf];
-model_con.x_max = [+inf; +inf];
-model_con.weights.Q = 1*eye(p);
-model_con.weights.Pf = 1*eye(p);
-model_con.weights.R = 0.1*eye(m);
+[model_sim, model_con, init_con] = models(2, delta*(1-debug));
+n = size(model_sim.A,1);
+m = size(model_sim.K,2);
+p = size(model_sim.C,1);
 
 %   steps_sim:  number of step to simulate
 steps_sim = 100;
 
-%   init_con:   initial condition
-init_con = [1; 0];
-
 %   reference:  reference signal
-reference = ones(1, steps_sim) * 5;
-% time = 1:steps_sim;
-% reference = sin(0.1*time);
+reference = [zeros(p, 10), ones(p, steps_sim-10) * 5];
 
 %   set_c:      set of hyperparamter 'c' to choose from
 set_c = [0, logspace(-6, -1, 9)];
@@ -78,7 +40,7 @@ set_c = [0, logspace(-6, -1, 9)];
 con_params.N = 20;
 % update reference: last value is repeated so that the controller has
 % always enough preview
-reference = [reference,repmat(reference(end),1,con_params.N)];
+reference = [reference,repmat(reference(:,end),1,con_params.N)];
 %       L:      time windows toward the past for estimation
 con_params.L = 10;
 %       beta:   forgetting factor
@@ -111,7 +73,7 @@ end
 n_simul = 100;
 % starting seed: all the simulations are done with the seed <i + s_simul>.
 % in order to make different runs of the script you need to vary this one
-s_simul = 5000000;
+s_simul = 5000;
 
 % struct to collect errors along time for Least-Favorable Model
 lfm.ex_pred = NaN(n, steps_sim, n_simul);
@@ -184,7 +146,7 @@ end
 % simulation so the graph will show for each t <mean_k(e_t^k)>
 figure(Name="Errors evolution")
 stadard_dev = true;
-ti = 30:steps_sim;
+ti = 50:steps_sim;
 H = rgb2hex(orderedcolors("gem"));
 
 % Prediction errors on state 1
@@ -241,19 +203,19 @@ title('errors on output prediction');
 % Tracking error
 ax3=subplot(2,2,4);
 % compute and plot mean across multiple runs
-mean_lfm = mean(lfm.ey(1,ti,:),3, "omitnan");
-mean_rkf = mean(rkf.ey(1,ti,:),3, "omitnan");
+mean_lfm = mean(sum(lfm.ey(1,ti,:),1),3, "omitnan");
+mean_rkf = mean(sum(rkf.ey(1,ti,:),1),3, "omitnan");
 plot(ti, mean_lfm, Color=H(1)); hold on
 plot(ti, mean_rkf, Color=H(2)); hold on
 % compute and plot standard deviations
 if stadard_dev
-    stde_lfm = std(lfm.ey(1,ti,:),0,3, "omitnan");
-    stde_rkf = std(rkf.ey(1,ti,:),0,3, "omitnan");
+    stde_lfm = std(sum(lfm.ey(1,ti,:),1),0,3, "omitnan");
+    stde_rkf = std(sum(rkf.ey(1,ti,:),1),0,3, "omitnan");
     plot(ti, mean_lfm+stde_lfm,ti, mean_lfm-stde_lfm, Color=H(1), LineStyle="--" ); hold on;
     plot(ti, mean_rkf+stde_rkf,ti, mean_rkf-stde_rkf, Color=H(2), LineStyle="--" ); hold off;
 end
 legend('lfm', 'rkf');
-title('tracking error Y');
+title('tracking error |Y-R|^2');
 
 xlim([ax0,ax1,ax2,ax3],[ti(1), ti(end)])
 
@@ -262,29 +224,43 @@ xlim([ax0,ax1,ax2,ax3],[ti(1), ti(end)])
 % and then are evaluated along the time. In theory this should not change
 % anything, but in practice this is different when some simulation
 % interrupt before the end.
-ti = 30:steps_sim;
-tab = table(zeros(4,1), zeros(4,1), zeros(4,1), zeros(4,1), ...
-    'RowNames',["ex1_pred","ex2_pred","ey_pred","ey"], ...
-    'VariableNames', ["LFM", "RKF", "LFM (std)", "RKF (std)"]);
+ti = 50:steps_sim;
 
-tab("ex1_pred","LFM") = {mean(mean(lfm.ex_pred(1,ti,:),2),3, "omitnan")};
-tab("ex2_pred","LFM") = {mean(mean(lfm.ex_pred(2,ti,:),2),3, "omitnan")};
-tab("ey_pred","LFM")  = {mean(mean(lfm.ey_pred(:,ti,:),2),3, "omitnan")};
-tab("ey","LFM")       = {mean(mean(lfm.ey(:,ti,:),2),3, "omitnan")};
+Snames = fieldnames(rkf);
+for field = 1:numel(Snames)
+    ff = Snames{field};
+    disp(ff)
+    nn = size(rkf.(ff),1);
+    tab = table(zeros(nn+1,1), zeros(nn+1,1), zeros(nn+1,1), zeros(nn+1,1), ...
+        'RowNames',[1:nn, "tot"], ...
+        'VariableNames', ["LFM", "RKF", "LFM (std)", "RKF (std)"]);
+    for i=[1:nn, "tot"]
+        tab(i,"LFM") = {stat_3D(lfm.(ff), "mean", i, ti)};
+        tab(i,"RKF") = {stat_3D(rkf.(ff), "mean", i, ti)};
+        tab(i,"LFM (std)") = {stat_3D(lfm.(ff), "std", i, ti)};
+        tab(i,"RKF (std)") = {stat_3D(rkf.(ff), "std", i, ti)};
+    end
+    disp(tab)
+end
 
-tab("ex1_pred","RKF") = {mean(mean(rkf.ex_pred(1,ti,:),2),3, "omitnan")};
-tab("ex2_pred","RKF") = {mean(mean(rkf.ex_pred(2,ti,:),2),3, "omitnan")};
-tab("ey_pred","RKF")  = {mean(mean(rkf.ey_pred(:,ti,:),2),3, "omitnan")};
-tab("ey","RKF")       = {mean(mean(rkf.ey(:,ti,:),2),3, "omitnan")};
-
-tab("ex1_pred","LFM (std)") = {mean(std(lfm.ex_pred(1,ti,:),0,2),3, "omitnan")};
-tab("ex2_pred","LFM (std)") = {mean(std(lfm.ex_pred(2,ti,:),0,2),3, "omitnan")};
-tab("ey_pred","LFM (std)")  = {mean(std(lfm.ey_pred(:,ti,:),0,2),3, "omitnan")};
-tab("ey","LFM (std)")       = {mean(std(lfm.ey(:,ti,:),0,2),3, "omitnan")};
-
-tab("ex1_pred","RKF (std)") = {mean(std(rkf.ex_pred(1,ti,:),0,2),3, "omitnan")};
-tab("ex2_pred","RKF (std)") = {mean(std(rkf.ex_pred(2,ti,:),0,2),3, "omitnan")};
-tab("ey_pred","RKF (std)")  = {mean(std(rkf.ey_pred(:,ti,:),0,2),3, "omitnan")};
-tab("ey","RKF (std)")       = {mean(std(rkf.ey(:,ti,:),0,2),3, "omitnan")};
-
-disp(tab)
+function result = stat_3D(vector, type, dim, time)
+arguments
+    vector  (:,:,:) double
+    type    (1,1)   {mustBeMember(type,["mean", "std"])}
+    dim
+    time
+end
+dim = str2double(dim);
+if isnan(dim)
+    vector = sum(vector(:,time,:),1);
+else
+    vector = vector(dim,time,:);
+end
+switch type
+    case "mean"
+        vector = mean(vector(:,:,:), 2);
+    case "std"
+        vector = std(vector(:,:,:), 0, 2);
+end
+result = mean(vector(:,:,:), 3, "omitnan");
+end
