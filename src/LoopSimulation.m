@@ -149,8 +149,6 @@ for t = 1:steps_sim
             model_con.x_min, model_con.x_max, ...
             model_con.u_min, model_con.u_max, con_params.options);
 
-        RKFs(cj).x_pred(:,t+1) = RKFs(cj).x_pred(:,t+1) ...
-            + model_fil.K * optimal_u(1:m,cj);
         % 3) Add past prediction error
         err = 0;
         for k=max(t-con_params.L, 1):(t-1) % time-window L
@@ -162,6 +160,11 @@ for t = 1:steps_sim
     end
     % 4) Optimization step
     [~, c_best(t+1)] = min(optimal_values);
+    % Update prediction of each filter based on the selected output
+    for cj=1:length(RKFs)
+        RKFs(cj).x_pred(:,t+1) = RKFs(cj).x_pred(:,t+1) ...
+            + model_fil.K * optimal_u(1:m,c_best(t+1));
+    end
     % Update values for next iteration
     x_best = RKFs(c_best(t+1)).x_pred(:,t+1);
     V_best = RKFs(c_best(t+1)).V(:,:,t+1);
