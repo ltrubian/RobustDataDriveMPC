@@ -84,7 +84,7 @@ end
 x_hat = zeros(n, steps_sim);
 y_hat = zeros(p, steps_sim);
 for t=1:steps_sim
-    x_hat(:,t) = filters(c_index(t)).x_pred(1:n,t);
+    x_hat(:,t) = filters(c_index(t+1)).x_pred(1:n,t+1);
     y_hat(:,t) = model_con.C * x_hat(:,t);
 end
 
@@ -112,3 +112,40 @@ stairs(simU');
 title('Ingresso di Controllo u');
 
 xlim([ax1,ax2,ax3],[1, steps_sim])
+
+%% ANALISI STOCASTICA: TEST DELLE BANDE 3-SIGMA
+
+% 1. Estrazione della deviazione standard (sigma) per ogni passo temporale
+sigma_3 = zeros(n, steps_sim);
+err_lin = simX(:, 1:steps_sim) - x_hat; % Errore di stima
+
+for t = 1:steps_sim
+    % Identifica quale filtro (raggio c) è stato usato al tempo t
+    current_c_idx = c_index(t+1); 
+    
+    % Estrae la matrice V per quel filtro allo step corrispondente
+    % V è la covarianza least-favorable calcolata in RiccatiIteration
+    V_t = filters(current_c_idx).V(1:n, 1:n, t+1); 
+    
+    % Calcola 3 * sigma (radice della varianza sulla diagonale)
+    sigma_3(:, t) = 3 * sqrt(diag(V_t));
+end
+
+% 2. Visualizzazione dei Risultati
+figure('Name', 'Validazione Filtro: Bande di Incertezza 3-Sigma');
+for i = 1:n
+    subplot(n, 1, i);
+    plot(1:steps_sim, err_lin(i, :), 'b', 'LineWidth', 1.5); hold on;
+    plot(1:steps_sim, sigma_3(i, :), 'r--', 'LineWidth', 1.2);
+    plot(1:steps_sim, -sigma_3(i, :), 'r--', 'LineWidth', 1.2);
+    
+    % Calcolo statistico dei campioni fuori dai bound
+    out_of_bounds = sum(abs(err_lin(i, :)) > sigma_3(i, :));
+    perc_out = (out_of_bounds / steps_sim) * 100;
+    
+    title(['Errore Stato x_', num2str(i), ' (Fuori dai bound: ', num2str(perc_out, '%.1f'), '%)']);
+    ylabel('Errore [x - x_{hat}]');
+    legend('Errore di stima', '\pm 3\sigma Bound');
+    grid on;
+end
+xlabel('Step Temporali');
