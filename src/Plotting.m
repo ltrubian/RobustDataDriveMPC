@@ -8,16 +8,11 @@
 %   c_index:    the sequence of c's selected by the controller
 %
 % COMPUTED/EXTRACTED VALUES:
-%   x_hat:      state estimation made by the (combination of) controller and
-%               filters and used by the first to produce the input and the
-%               latter estimate the next state
-
-% the struct filters holds all the prediction made by all the filters and
-% we need to extract the ones that were actually used by the controller
+%   x_hat:      state estimation
 
 time_steps = 1:steps_sim;
 
-% Preallocate arrays for speed
+% Preallocate arrays for speed using dynamically extracted dimensions n, p
 x_hat   = zeros(n, steps_sim);
 y_hat   = zeros(p, steps_sim);
 c_vals  = zeros(1, steps_sim);
@@ -50,6 +45,9 @@ fs_label = 12;
 fs_title = 14;
 latex_opt = {'Interpreter', 'latex'};
 
+% Generate a dynamic color palette large enough for max(n, m, p)
+colors = lines(max([n, m, p])); 
+
 %% 2. FIGURE 1: Control & Tracking Performance
 fig1 = figure('Name', 'System Performance');
 tl1 = tiledlayout(2, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
@@ -57,24 +55,36 @@ tl1 = tiledlayout(2, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
 % 1A: Output Tracking
 ax1 = nexttile;
 hold(ax1, 'on'); grid(ax1, 'on');
-plot(time_steps, reference(1, 1:steps_sim), 'k--', 'LineWidth', lw);
-plot(time_steps, simY(1, 2:steps_sim+1), 'b-', 'LineWidth', lw);
-plot(time_steps, y_hat(1, :), 'r-.', 'LineWidth', lw);
+for i = 1:p
+    % Assign consistent color per output
+    c = colors(i, :);
+    plot(time_steps, reference(i, 1:steps_sim), '--', 'Color', c, 'LineWidth', lw, 'DisplayName', sprintf('Ref $y_%d$', i));
+    plot(time_steps, simY(i, 2:steps_sim+1), '-', 'Color', c, 'LineWidth', lw, 'DisplayName', sprintf('True $y_%d$', i));
+    plot(time_steps, y_hat(i, :), ':', 'Color', c, 'LineWidth', lw*1.5, 'DisplayName', sprintf('Est $y_%d$', i));
+end
 ylabel('Output $y$', latex_opt{:}, 'FontSize', fs_label);
 title('\textbf{Output Tracking Performance}', latex_opt{:}, 'FontSize', fs_title);
-legend('Reference', 'True Output', 'Estimated Output', 'Location', 'best', latex_opt{:});
+legend('Location', 'best', latex_opt{:});
 
 % 1B: Control Effort
 ax2 = nexttile;
 hold(ax2, 'on'); grid(ax2, 'on');
-stairs(time_steps, simU(1, 1:steps_sim), 'b-', 'LineWidth', lw);
-stairs(time_steps, simU(2, 1:steps_sim), 'r-', 'LineWidth', lw);
-yline(model_con.u_max(1), 'k--', 'LineWidth', 1.2, 'HandleVisibility', 'off');
-yline(model_con.u_min(1), 'k--', 'LineWidth', 1.2, 'HandleVisibility', 'off');
+for i = 1:m
+    c = colors(i, :);
+    stairs(time_steps, simU(i, 1:steps_sim), '-', 'Color', c, 'LineWidth', lw, 'DisplayName', sprintf('$u_%d$', i));
+    
+    % Dynamically plot input constraints if they exist for this dimension
+    if isfield(model_con, 'u_max') && length(model_con.u_max) >= i
+        yline(model_con.u_max(i), '--', 'Color', c, 'LineWidth', 1.2, 'HandleVisibility', 'off');
+    end
+    if isfield(model_con, 'u_min') && length(model_con.u_min) >= i
+        yline(model_con.u_min(i), '--', 'Color', c, 'LineWidth', 1.2, 'HandleVisibility', 'off');
+    end
+end
 ylabel('Control Input $u$', latex_opt{:}, 'FontSize', fs_label);
 xlabel('Time Step $k$', latex_opt{:}, 'FontSize', fs_label);
 title('\textbf{Control Effort (with constraints)}', latex_opt{:}, 'FontSize', fs_title);
-legend('$u_1$', '$u_2$', 'Location', 'best', latex_opt{:});
+legend('Location', 'best', latex_opt{:});
 
 linkaxes([ax1, ax2], 'x');
 xlim(ax1, [1, steps_sim]);
@@ -86,12 +96,13 @@ tl2 = tiledlayout(2, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
 % 2A: State Estimation Error
 ax3 = nexttile;
 hold(ax3, 'on'); grid(ax3, 'on');
-plot(time_steps, err_x(1, :), 'b-', 'LineWidth', lw);
-plot(time_steps, err_x(2, :), 'r-', 'LineWidth', lw);
+for i = 1:n
+    plot(time_steps, err_x(i, :), '-', 'Color', colors(i, :), 'LineWidth', lw, 'DisplayName', sprintf('$e_%d$', i));
+end
 yline(0, 'k--', 'HandleVisibility', 'off');
 ylabel('Error $x - \hat{x}$', latex_opt{:}, 'FontSize', fs_label);
 title('\textbf{State Estimation Error}', latex_opt{:}, 'FontSize', fs_title);
-legend('$e_1$', '$e_2$', 'Location', 'best', latex_opt{:});
+legend('Location', 'best', latex_opt{:});
 
 % 2B: Adaptive Parameter Selection
 ax4 = nexttile;
@@ -116,9 +127,10 @@ for i = 1:n
     hold(ax, 'on'); grid(ax, 'on');
     
     % Plot True Error and 3-Sigma Bounds
-    plot(time_steps, err_x(i, :), 'b-', 'LineWidth', lw);
-    plot(time_steps, sigma_3(i, :), 'r--', 'LineWidth', 1.2);
-    plot(time_steps, -sigma_3(i, :), 'r--', 'LineWidth', 1.2);
+    c = colors(i, :);
+    plot(time_steps, err_x(i, :), '-', 'Color', c, 'LineWidth', lw, 'DisplayName', 'Estimation Error');
+    plot(time_steps, sigma_3(i, :), 'r--', 'LineWidth', 1.2, 'DisplayName', '$\pm 3\sigma$ Bound');
+    plot(time_steps, -sigma_3(i, :), 'r--', 'LineWidth', 1.2, 'HandleVisibility', 'off');
     
     % Statistical calculation for out-of-bounds samples
     out_of_bounds = sum(abs(err_x(i, :)) > sigma_3(i, :));
@@ -130,7 +142,7 @@ for i = 1:n
     ylabel(sprintf('$e_%d$', i), latex_opt{:}, 'FontSize', fs_label);
     
     if i == 1
-        legend('Estimation Error', '$\pm 3\sigma$ Bound', 'Location', 'best', latex_opt{:});
+        legend('Location', 'best', latex_opt{:});
     end
     if i == n
         xlabel('Time Step $k$', latex_opt{:}, 'FontSize', fs_label);
