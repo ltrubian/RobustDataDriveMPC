@@ -26,7 +26,7 @@ switch n_model
         model_sim.B = [0.5 0.2 0.1 0; 0 0.3 0.2 0.01];      % noise -> state
         model_sim.C = [1 0; 0.3 1];                         % state -> output
         model_sim.D = [0.1, 0.05, 0.01 0.2; 0 0.2 0.1 0.05];% noise -> output
-        model_sim.K = [0.5 0; 1 0.1];                       % input -> state
+        model_sim.K = [0.5 3; 1 0.1];                       % input -> state
         % model_sim.J = [0.1; 0.05];                        % input -> output
     case 3
         %   model_sim:  true model to simulate
@@ -77,7 +77,7 @@ model_nom.x_min = [-inf; -inf];
 model_nom.x_max = [+inf; +inf];
 model_nom.weights.Q = 1*eye(size(model_sim.C,1));
 model_nom.weights.Pf = 1*eye(size(model_sim.C,1));
-model_nom.weights.R = 0.01*eye(size(model_sim.K,2));
+model_nom.weights.R = 0*eye(size(model_sim.K,2));
 
 %   init_con:   initial condition
 init_con = [1; 0];
