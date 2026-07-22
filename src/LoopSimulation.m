@@ -54,14 +54,12 @@ simX(:,1) = init_con;
 % with a specific state, state dynamics, and initial covariance
 switch con_params.mpc
     case "RKF"
-        mf = m;
         nc = n;
         nf = n;
         V_0 = eye(nc);
         model_fil = model_nom;
         model_con = model_nom;
     case "RKF-ext"
-        mf = m*N;
         nc = n;
         nf = n*N;
         V_0 = kron(ones(N)+eye(N)/10,eye(n));
@@ -73,7 +71,6 @@ switch con_params.mpc
             "K", cell2mat(arrayfun(@(k) (model_sim.A)^k, 0:N-1, 'UniformOutput', false)')* model_nom.K);
         model_con = model_nom;
     case "LFM"
-        mf = m;
         nf = 2*n;
         nc = 2*n;
         V_0 = eye(nc);
@@ -152,6 +149,8 @@ for t = 1:steps_sim
             model_con.x_min, model_con.x_max, ...
             model_con.u_min, model_con.u_max, con_params.options);
 
+        RKFs(cj).x_pred(:,t+1) = RKFs(cj).x_pred(:,t+1) ...
+            + model_fil.K * optimal_u(1:m,cj);
         % 3) Add past prediction error
         err = 0;
         for k=max(t-con_params.L, 1):(t-1) % time-window L
@@ -164,8 +163,7 @@ for t = 1:steps_sim
     % 4) Optimization step
     [~, c_best(t+1)] = min(optimal_values);
     % Update values for next iteration
-    x_best = RKFs(c_best(t+1)).x_pred(:,t+1) ...
-        + model_fil.K * optimal_u(1:m,c_best(t+1));
+    x_best = RKFs(c_best(t+1)).x_pred(:,t+1);
     V_best = RKFs(c_best(t+1)).V(:,:,t+1);
     % save prediction
     RKFs(c_best(t+1)).x_pred(:,t+1) = x_best;
