@@ -70,7 +70,7 @@ switch con_params.mpc
             "B", kron(eye(N), model_nom.B), ...
             "C", kron([1, zeros(1,N-1)], model_nom.C), ...
             "D", kron([1, zeros(1,N-1)], model_nom.D), ...
-            "K", kron([1, zeros(1,N-1)]'*[1, zeros(1,N-1)], model_nom.K));
+            "K", cell2mat(arrayfun(@(k) (model_sim.A)^k, 0:N-1, 'UniformOutput', false)')* model_nom.K);
         model_con = model_nom;
     case "LFM"
         mf = m;
@@ -165,7 +165,7 @@ for t = 1:steps_sim
     [~, c_best(t+1)] = min(optimal_values);
     % Update values for next iteration
     x_best = RKFs(c_best(t+1)).x_pred(:,t+1) ...
-        + model_fil.K * optimal_u(1:mf,c_best(t+1));
+        + model_fil.K * optimal_u(1:m,c_best(t+1));
     V_best = RKFs(c_best(t+1)).V(:,:,t+1);
     % save prediction
     RKFs(c_best(t+1)).x_pred(:,t+1) = x_best;
