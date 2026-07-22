@@ -1,4 +1,4 @@
-function [simX, simY, simU, cpuT, RKFs, c_best] = LoopSimulation(model_sim, model_nom, ...
+function [simX, simY, trueY, simU, cpuT, RKFs, c_best] = LoopSimulation(model_sim, model_nom, ...
     steps_sim, init_con, reference, set_c, debug, verbose, con_params)
 %LOOPSIMULATION Simulate cloosed-loop system
 %
@@ -43,6 +43,7 @@ N = con_params.N;
 simX = NaN(n, steps_sim + 1);
 simY = NaN(p, steps_sim + 1);
 simU = NaN(m, steps_sim);
+trueY = NaN(p, steps_sim + 1);
 cpuT = NaN(size(simU,1), 1);
 
 % initialize the simulation initial information
@@ -106,6 +107,7 @@ if debug
 end
 for t = 1:steps_sim
     %% Output of the system
+    trueY(:,t) = model_sim.C * simX(:,t);
     simY(:,t) = model_sim.C * simX(:,t) ...
         + model_sim.D * vt;
     % to add the input -> output dynamics, make sure matrix and MPC can
