@@ -13,7 +13,7 @@ delta = 0.05;      % model perturbation gain
 % offset_free
 offset_free = true;
 
-[model_sim, model_nom, init_con] = models(2, delta, offset_free);
+[model_sim, model_con, init_con] = models(2, delta, offset_free);
 
 n = size(model_sim.A,1);
 m = size(model_sim.K,2);
