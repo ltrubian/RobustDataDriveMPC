@@ -148,16 +148,20 @@ for t = 1:steps_sim
             N, reshape(reference(:,t:t+N-1),[],1), ...
             model_con.x_min, model_con.x_max, ...
             model_con.u_min, model_con.u_max, con_params.options);
-
+    end
+    optimal_values = optimal_values ./ (eps+max(optimal_values));
+    optimal_values_ff = zeros(size(set_c,1),1);
+    for cj=1:length(RKFs)
         % 3) Add past prediction error
         err = 0;
         for k=max(t-con_params.L, 1):(t-1) % time-window L
             % forgetting factor beta
             err = err * con_params.beta ...
-                + norm(simY(:,k) - model_fil.C * RKFs(cj).x_pred(:,k),2)^2;
+                + norm(simY(:,k) - model_nom.C * RKFs(cj).x_pred(1:n,k),2)^2;
         end
-        optimal_values(cj) = optimal_values(cj) + err;
+        optimal_values_ff(cj) = err;
     end
+    optimal_values = optimal_values + (optimal_values_ff ./(eps+max(optimal_values_ff)) );
     % 4) Optimization step
     [~, c_best(t+1)] = min(optimal_values);
     % Update prediction of each filter based on the selected output
@@ -183,8 +187,11 @@ for t = 1:steps_sim
         + model_sim.K * simU(:,t);              % input
 
     if verbose
-        fprintf('It: %3d/%3d  CPU time: %2.2f TOTAL time: %4.2f  c: %.1e  pred err: %3.3f\n', ...
-            t, steps_sim, cpuT(t), sum(cpuT), RKFs(c_best(t)).c, norm(RKFs(c_best(t)).x_pred(1:n,t) - simX(:,t) ,2));
+        fprintf(['It: %3d/%3d  CPU: %2.2f TOTAL: %4.2f  c: %.1e ' ...
+            'pred err: %3.3f min_opt: %3.3f max_opt: %3.3f\n'], ...
+            t, steps_sim, cpuT(t), sum(cpuT), RKFs(c_best(t)).c, ...
+            norm(RKFs(c_best(t)).x_pred(1:n,t) - simX(:,t) ,2), ...
+            min(optimal_values),max(optimal_values));
     end
 end
 end
