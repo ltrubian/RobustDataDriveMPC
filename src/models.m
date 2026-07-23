@@ -86,6 +86,17 @@ model_nom.K = model_sim.K + delta * randn(size(model_sim.K)); % input -> state
 n = size(model_sim.A, 1);
 p = size(model_sim.C, 1);
 
+% disturbances matrices for the offset-free tracking. Due to detectability
+% and the proprerty of offset-free tracking, the number of disturbances is
+% equal to the number of tracked output (in our case, we try to track all
+% the outputs
+tmp_disturbances = (ones(n+p, p) + eye(n+p,p))/2;
+model_nom.Bd = tmp_disturbances(1:n,:);
+model_nom.Cd = tmp_disturbances(n+1:end,:);
+
+% assert detectability of disturbances
+assert(rank([model_nom.A - eye(n), model_nom.Bd; ...
+    model_nom.C, model_nom.Cd]) == n+p, "Non-observable disturbances");
 % assert dimensions
 assert(size(model_sim.K, 1) == n, "invalid #rows input-state matrix");
 assert(size(model_sim.C, 2) == n, "invalid #cols state-output matrix");
