@@ -11,7 +11,6 @@ switch n_model
         model_sim.C = [1 0];                        % state -> output
         model_sim.D = [0.1, 0.05, 0.01];            % noise -> output
         model_sim.K = [0.5; 1];                     % input -> state
-        % model_sim.J = [0.1; 0.05];                % input -> output
     case 1
         %   model_sim:  true model to simulate
         model_sim.A = [1.1 1; 0 1];                 % state -> state
@@ -19,7 +18,6 @@ switch n_model
         model_sim.C = [1 0];                        % state -> output
         model_sim.D = [0.1, 0.05, 0.01];            % noise -> output
         model_sim.K = [0.5 0; 1 0.1];               % input -> state
-        % model_sim.J = [0.1; 0.05];                % input -> output
     case 2
         %   model_sim:  true model to simulate
         model_sim.A = [1.1 1; 0 1];                         % state -> state
@@ -27,7 +25,6 @@ switch n_model
         model_sim.C = [1 0; 0.3 1];                         % state -> output
         model_sim.D = [0.1, 0.05, 0.01 0.2; 0 0.2 0.1 0.05];% noise -> output
         model_sim.K = [0.5 3; 1 0.1];                       % input -> state
-        % model_sim.J = [0.1; 0.05];                        % input -> output
     case 3
         %   model_sim:  true model to simulate
         model_sim.A = [1.1 1; 0 1];                         % state -> state
@@ -35,7 +32,6 @@ switch n_model
         model_sim.C = [1 0; 0.3 1];                         % state -> output
         model_sim.D = [0.1, 0.05, 0.01 0.2; 0 0.2 0.1 0.05];% noise -> output
         model_sim.K = [0.5; 1];                             % input -> state
-        % model_sim.J = [0.1; 0.05];                        % input -> output
     case 4
         %   model_sim:  true model to simulate
         model_sim.A = [1.1 1; 0 1];                 % state -> state
@@ -43,7 +39,6 @@ switch n_model
         model_sim.C = [1 0];                        % state -> output
         model_sim.D = [0.1, 0.05, 0.01];            % noise -> output
         model_sim.K = [5; 1];                       % input -> state
-        % model_sim.J = [0.1; 0.05];                % input -> output
     case 5
         %   model_sim:  true model to simulate
         model_sim.A = [1.1 1; 0 1];                 % state -> state
@@ -51,7 +46,6 @@ switch n_model
         model_sim.C = [1 0];                        % state -> output
         model_sim.D = [0.1, 0.05, 0.01];            % noise -> output
         model_sim.K = [5 0.5; 1 0.1];               % input -> state
-        % model_sim.J = [0.1; 0.05];                % input -> output
     case 6
         %   model_sim:  true model to simulate
         model_sim.A = [1.1 1; 0 1];                         % state -> state
@@ -59,15 +53,13 @@ switch n_model
         model_sim.C = [1 0; 0.3 1];                         % state -> output
         model_sim.D = [0.1, 0.05, 0.01 0.2; 0 0.2 0.1 0.05];% noise -> output
         model_sim.K = [5 0.5; 1 0.1];                       % input -> state
-        % model_sim.J = [0.1; 0.05];                        % input -> output
     case 7
         %   model_sim:  true model to simulate
         model_sim.A = [1.1 1; 0 1];                         % state -> state
         model_sim.B = [0.5 0.2 0.1 0; 0 0.3 0.2 0.01];      % noise -> state
         model_sim.C = [1 0; 0.3 1];                         % state -> output
         model_sim.D = [0.1, 0.05, 0.01 0.2; 0 0.2 0.1 0.05];% noise -> output
-        model_sim.K = [5; 1];                       % input -> state
-        % model_sim.J = [0.1; 0.05];                        % input -> output
+        model_sim.K = [5; 1];                               % input -> state
 end
 
 % MPC config
@@ -85,11 +77,33 @@ init_con = [1; 0];
 %   model_nom:  nominal (perturbed) model used by MPC controller. The
 %   perturbation of each entry is the product of the gain delta and a
 %   random matrix with compatible sie
-model_nom.A = model_sim.A + delta * randn(size(model_sim.A));
-model_nom.B = model_sim.B + delta * randn(size(model_sim.B));
-model_nom.C = model_sim.C + delta * randn(size(model_sim.C));
-model_nom.D = model_sim.D + delta * randn(size(model_sim.D));
+model_nom.A = model_sim.A + delta * randn(size(model_sim.A)); % state -> state
+model_nom.B = model_sim.B + delta * randn(size(model_sim.B)); % noise -> state
+model_nom.C = model_sim.C + delta * randn(size(model_sim.C)); % state -> output
+model_nom.D = model_sim.D + delta * randn(size(model_sim.D)); % noise -> output
+model_nom.K = model_sim.K + delta * randn(size(model_sim.K)); % input -> state
 
-model_nom.K = model_sim.K + delta * randn(size(model_sim.K));
-% model_con.J = model_sim.J + delta * randn(size(model_sim.J));
+n = size(model_sim.A, 1);
+p = size(model_sim.C, 1);
+
+% assert dimensions
+assert(size(model_sim.K, 1) == n, "invalid #rows input-state matrix");
+assert(size(model_sim.C, 2) == n, "invalid #cols state-output matrix");
+assert(size(model_sim.B, 1) == n, "invalid #rows noise-state matrix");
+assert(size(model_sim.D, 1) == p, "invalid #rows noise-output matrix");
+assert(size(model_sim.B, 2) == n+p, "invalid #cols noise-state matrix");
+assert(size(model_sim.D, 2) == n+p, "invalid #cols noise-output matrix");
+% assert controllability
+Co = ctrb(model_sim.A, model_sim.K);
+assert(rank(Co) == n, "Non-controllable real world model");
+Co = ctrb(model_nom.A, model_nom.K);
+assert(rank(Co) == n, "Non-controllable nominal model");
+% assert observability
+Ob = obsv(model_sim.A, model_sim.C);
+assert(rank(Ob) == n, "Non-observable real world model");
+Ob = obsv(model_nom.A, model_nom.C);
+assert(rank(Ob) == n, "Non-observable nominal model");
+% assert noise covariance invertibility
+assert(rank([model_sim.B; model_sim.D]) == n+p, "Non-Invertible noise covariance")
+assert(rank([model_nom.B; model_nom.D]) == n+p, "Non-Invertible noise covariance")
 end
