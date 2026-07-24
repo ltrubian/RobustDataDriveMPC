@@ -84,7 +84,7 @@ Hu = kron(speye(N), weights.R);
 %       ensure the Hessian matrix to be symmetric even in presence 
 %       of numerical errors
 f = - [fy * reference; sparse(m*N,1)];
-f = - [fy * C_blk * ref_xu(1:n*N); ref_xu(n*N+1:end)];
+f = - [fy * C_blk * ref_xu(1:n*N); Hu * ref_xu(n*N+1:end)];
 H = blkdiag(fy * C_blk, Hu);
 H = (H+H')/2;
 
