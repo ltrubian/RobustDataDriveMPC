@@ -14,12 +14,12 @@ delta = 0.05;
 % model allowing the MPC to compensate for offset
 offset_free = true;
 
-[model_sim, model_con, init_con] = models(2, delta, offset_free);
+[model_sim, model_nom, init_con] = models(2, delta, offset_free);
 
 n = size(model_sim.A,1);        % state real world
 m = size(model_sim.K,2);        % input real world
 p = size(model_sim.C,1);        % output real world
-r = size(model_con.A,1) - n;    % fictitious disturbances (if introduced)
+r = size(model_nom.A,1) - n;    % fictitious disturbances (if introduced)
 
 %   steps_sim:  number of step to simulate
 steps_sim = 100;
@@ -65,7 +65,7 @@ else
 end
 
 %% SIMULATION OF THE WHOLE SYSTEM
-[simX, simY, trueY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
+[simX, simY, trueY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_nom, ...
     steps_sim, init_con, reference, set_c, debug, verbose, ...
     con_params);
 
