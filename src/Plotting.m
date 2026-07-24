@@ -21,32 +21,32 @@ sigma_3 = zeros(n, steps_sim);
 % Extract estimation data, adaptive parameters, and covariances
 for t = time_steps
     idx = c_index(t+1); % Identify active filter index
-    
+
     % Extract state prediction and calculate estimated output
     x_hat(:, t) = filters(idx).x_pred(1:n, t+1);
-    y_hat(:, t) = model_con.C * x_hat(:, t);
-    
+    y_hat(:, t) = model_con.C(:,1:n+r) * filters(idx).x_pred(1:n+r, t+1);
+
     % Extract robustness parameter 'c' (set 0 to 1e-8 for semilogy plotting)
     c_vals(t) = max(filters(idx).c, 1e-8);
-    
+
     % Extract 3-Sigma bounds from the least-favorable covariance matrix V
-    V_t = filters(idx).V(1:n, 1:n, t+1); 
+    V_t = filters(idx).V(1:n, 1:n, t+1);
     sigma_3(:, t) = 3 * sqrt(diag(V_t));
 end
 
 % Compute state estimation error (aligning prediction with simulated state)
-x_true = simX(:, 2:steps_sim+1); 
-err_x  = x_true - x_hat; 
+x_true = simX(:, 2:steps_sim+1);
+err_x  = x_true - x_hat;
 
 %% PLOT FORMATTING SETTINGS
 % Centralized settings for consistent aesthetics
-lw = 1.5; 
-fs_label = 12; 
+lw = 1.5;
+fs_label = 12;
 fs_title = 14;
 latex_opt = {'Interpreter', 'latex'};
 
 % Generate a dynamic color palette large enough for max(n, m, p)
-colors = lines(max([n, m, p])); 
+colors = lines(max([n, m, p]));
 
 %% 2. FIGURE 1: Control & Tracking Performance
 fig1 = figure('Name', 'System Performance');
@@ -72,7 +72,7 @@ hold(ax2, 'on'); grid(ax2, 'on');
 for i = 1:m
     c = colors(i, :);
     stairs(time_steps, simU(i, 1:steps_sim), '-', 'Color', c, 'LineWidth', lw, 'DisplayName', sprintf('$u_%d$', i));
-    
+
     % Dynamically plot input constraints if they exist for this dimension
     if isfield(model_con, 'u_max') && length(model_con.u_max) >= i
         yline(model_con.u_max(i), '--', 'Color', c, 'LineWidth', 1.2, 'HandleVisibility', 'off');
@@ -125,22 +125,22 @@ tl3 = tiledlayout(n, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
 for i = 1:n
     ax = nexttile;
     hold(ax, 'on'); grid(ax, 'on');
-    
+
     % Plot True Error and 3-Sigma Bounds
     c = colors(i, :);
     plot(time_steps, err_x(i, :), '-', 'Color', c, 'LineWidth', lw, 'DisplayName', 'Estimation Error');
     plot(time_steps, sigma_3(i, :), 'r--', 'LineWidth', 1.2, 'DisplayName', '$\pm 3\sigma$ Bound');
     plot(time_steps, -sigma_3(i, :), 'r--', 'LineWidth', 1.2, 'HandleVisibility', 'off');
-    
+
     % Statistical calculation for out-of-bounds samples
     out_of_bounds = sum(abs(err_x(i, :)) > sigma_3(i, :));
     perc_out = (out_of_bounds / steps_sim) * 100;
-    
+
     % Dynamic Title & Labels
     title_str = sprintf('\\textbf{State Error $e_%d$ (Out of bounds: %.1f\\%%)}', i, perc_out);
     title(title_str, latex_opt{:}, 'FontSize', fs_title);
     ylabel(sprintf('$e_%d$', i), latex_opt{:}, 'FontSize', fs_label);
-    
+
     if i == 1
         legend('Location', 'best', latex_opt{:});
     end

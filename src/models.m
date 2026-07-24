@@ -1,7 +1,8 @@
-function [model_sim, model_nom, init_con] = models(n_model, delta)
+function [model_sim, model_nom, init_con] = models(n_model, delta, offset_free)
 arguments
-    n_model (1,1) double {mustBeMember(n_model,0:7)}
-    delta   (1,1) double {mustBeNonnegative(delta)}
+    n_model     (1,1) double {mustBeMember(n_model,0:7)}
+    delta       (1,1) double {mustBeNonnegative(delta)}
+    offset_free (1,1) logical
 end
 switch n_model
     case 0
@@ -84,8 +85,20 @@ model_nom.D = model_sim.D + delta * randn(size(model_sim.D)); % noise -> output
 model_nom.K = model_sim.K + delta * randn(size(model_sim.K)); % input -> state
 
 n = size(model_sim.A, 1);
+m = size(model_sim.K, 2);
 p = size(model_sim.C, 1);
 
+% disturbances matrices for the offset-free tracking. Due to detectability
+% and the proprerty of offset-free tracking, the number of disturbances is
+% equal to the number of tracked output (in our case, we try to track all
+% the outputs
+tmp_disturbances = (ones(n+p, p) + eye(n+p,p))/2;
+model_nom.Bd = tmp_disturbances(1:n,:);
+model_nom.Cd = tmp_disturbances(n+1:end,:) + eye(p);
+
+% assert detectability of disturbances
+assert(rank([model_nom.A - eye(n), model_nom.Bd; ...
+    model_nom.C, model_nom.Cd]) == n+p, "Non-observable disturbances");
 % assert dimensions
 assert(size(model_sim.K, 1) == n, "invalid #rows input-state matrix");
 assert(size(model_sim.C, 2) == n, "invalid #cols state-output matrix");
@@ -106,4 +119,15 @@ assert(rank(Ob) == n, "Non-observable nominal model");
 % assert noise covariance invertibility
 assert(rank([model_sim.B; model_sim.D]) == n+p, "Non-Invertible noise covariance")
 assert(rank([model_nom.B; model_nom.D]) == n+p, "Non-Invertible noise covariance")
+
+if offset_free
+    model_nom.A = [model_nom.A model_nom.Bd; zeros(p, n) eye(p)];
+    model_nom.K = [model_nom.K; zeros(p, m)];
+    model_nom.C = [model_nom.C model_nom.Cd];
+    model_nom.B = [model_nom.B eye(n,p); eye(p,n+2*p)];
+    model_nom.D = [model_nom.D eye(p,p)];
+    model_nom.x_min = [model_nom.x_min; -Inf(p,1)];
+    model_nom.x_max = [model_nom.x_max; +Inf(p,1)];
+    assert(rank([model_nom.B; model_nom.D]) == n+2*p, "Non-Invertible noise covariance")
+end
 end
