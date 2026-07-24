@@ -109,7 +109,7 @@ else
 
     prob = osqp;
     prob.setup(H, f, A, l, u, 'warm_start', false, 'verbose', false, ...
-        'eps_abs', 1e-8, 'eps_rel', 1e-8, 'polish', true);
+        'eps_abs', 1e-6, 'eps_rel', 1e-6, 'polish', false);
     res = prob.solve();
     if res.info.status_val ~= 1 && res.info.status_val ~= 2
         error('OSQP Solver Failed: %s', res.info.status);
