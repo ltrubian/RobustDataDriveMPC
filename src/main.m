@@ -70,4 +70,4 @@ end
     con_params);
 
 %% Plot and analysis
-Plotting
+plotting;
