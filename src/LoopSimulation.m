@@ -60,16 +60,6 @@ switch con_params.mpc
         V_0 = eye(nf);
         model_fil = model_nom;
         model_con = model_nom;
-    case "RKF-ext"
-        nf = n*N;
-        V_0 = kron(ones(N)+eye(N)/10,eye(n));
-        model_fil = struct( ...
-            "A", kron(eye(N), model_nom.A), ...
-            "B", kron(eye(N), model_nom.B), ...
-            "C", kron([1, zeros(1,N-1)], model_nom.C), ...
-            "D", kron([1, zeros(1,N-1)], model_nom.D), ...
-            "K", cell2mat(arrayfun(@(k) (model_nom.A)^k, 0:N-1, 'UniformOutput', false)')* model_nom.K);
-        model_con = model_nom;
     case "LFM"
         nc = n+r;       % controll state: state + disturbances (if present)
         nf = 2*(n+r);   % estimated state: LFM is double of controll sttate
@@ -92,8 +82,6 @@ for i=1:size(set_c,1)
 end
 % sequence of the (indexes) tollerances selected by the controller
 c_best = ones(steps_sim+1,1);
-x_best = RKFs(1).x_pred(:,1);
-V_best = RKFs(1).V(:,:,1);
 
 % vt:   noise at time t
 vt = randn(n+p,1) * (1 - debug);
