@@ -1,6 +1,6 @@
 function [simX, simY, trueY, simU, cpuT, RKFs, c_best] = LoopSimulation(model_sim, model_nom, ...
     steps_sim, init_con, reference, set_c, debug, verbose, con_params)
-%LOOPSIMULATION Simulate cloosed-loop system
+%LOOPSIMULATION Simulate closed-loop system
 %
 %       <usage here>
 %
@@ -55,14 +55,14 @@ simX(:,1) = init_con;
 % with a specific state, state dynamics, and initial covariance
 switch con_params.mpc
     case "RKF"
-        nc = n+r;       % controll state: state + disturbances (if present)
-        nf = n+r;       % estimated state: RKF is the controll sttate
+        nc = n+r;       % control state: state + disturbances (if present)
+        nf = n+r;       % estimated state: RKF is the control state
         V_0 = eye(nf);
         model_fil = model_nom;
         model_con = model_nom;
     case "LFM"
-        nc = n+r;       % controll state: state + disturbances (if present)
-        nf = 2*(n+r);   % estimated state: LFM is double of controll sttate
+        nc = n+r;       % control state: state + disturbances (if present)
+        nf = 2*(n+r);   % estimated state: LFM is double of control state
         V_0 = eye(nf);
         % in this case the models used by controller and the filter are 
         % updated at each iteration and it is unnecessary to initialize
@@ -80,7 +80,7 @@ RKFs = repmat( ...
 for i=1:size(set_c,1)
     RKFs(i).c = set_c(i);
 end
-% sequence of the (indexes) tollerances selected by the controller
+% sequence of the (indexes) tolerances selected by the controller
 c_best = ones(steps_sim+1,1);
 
 % vt:   noise at time t

@@ -153,70 +153,71 @@ end
 linkaxes(findobj(fig3, 'type', 'axes'), 'x');
 xlim(findobj(fig3, 'type', 'axes'), [1, steps_sim]);
 
-%%
+%%%% RESIDUAL ANALYSIS DIAGNOSTICS (Commented by default; uncomment to run)
+%
+% % Generate dummy test data for analysis
+% u_data = simU(1:end-1);
+% eps_data = reference(1,1:steps_sim-1) - simY(1,2:end-1);
 % 
-% % Generazione dati di test fittizi (sostituisci con i tuoi vettori riga)
-% u_dati = simU(1:end-1);
-% eps_dati = reference(1,1:steps_sim-1) - simY(1,2:end-1);
-% 
-% % Chiamata alla funzione
+% % Function call
 % max_lag = 20;
-% [r_eps, lag_eps, r_epsu, lag_epsu, conf_limit] = analizza_residui_norm(eps_dati, u_dati, max_lag);
+% [r_eps, lag_eps, r_epsu, lag_epsu, conf_limit] = analyze_residuals_normalized(eps_data, u_data, max_lag);
 % 
-% % Plot Autocorrelazione Normalizzata
+% % Plot Normalized Autocorrelation
 % figure;
 % subplot(2,1,1);
 % stem(lag_eps, r_eps, 'filled');
 % hold on;
-% yline(conf_limit, '--r', 'Limite 99%');
+% yline(conf_limit, '--r', '99% Conf Limit');
 % yline(-conf_limit, '--r');
-% title('Autocorrelazione Normalizzata dei Residui');
+% title('Normalized Autocorrelation of Residuals');
 % xlabel('Lag (\tau)');
-% ylim([-1 1]); % Fissa i limiti Y essendo un segnale normalizzato
+% ylim([-1 1]); % Set Y limits since the signal is normalized
 % grid on;
 % 
-% % Plot Cross-correlazione Normalizzata
+% % Plot Normalized Cross-correlation
 % subplot(2,1,2);
 % stem(lag_epsu, r_epsu, 'filled');
 % hold on;
-% yline(conf_limit, '--r', 'Limite 99%');
+% yline(conf_limit, '--r', '99% Conf Limit');
 % yline(-conf_limit, '--r');
-% title('Cross-correlazione Normalizzata Residuo-Input');
+% title('Normalized Cross-correlation of Residuals and Inputs');
 % xlabel('Lag (\tau)');
 % ylim([-1 1]);
 % grid on;
-% function [r_eps, lag_eps, r_epsu, lag_epsu, conf_limit] = analizza_residui_norm(eps, u, max_lag)
-% % ANALIZZA_RESIDUI_NORM Calcola auto e cross-correlazione normalizzate.
+%
+% function [r_eps, lag_eps, r_epsu, lag_epsu, conf_limit] = analyze_residuals_normalized(eps, u, max_lag)
+% % ANALYZE_RESIDUALS_NORMALIZED Calculates normalized auto- and cross-correlation.
 % %
 % % Input:
-% %   eps     : Vettore riga dei residui (innovazione del filtro)
-% %   u       : Vettore riga degli ingressi di controllo
-% %   max_lag : Massimo ritardo (lag) da calcolare
+% %   eps     : Row vector of residuals (filter innovation)
+% %   u       : Row vector of control inputs
+% %   max_lag : Maximum lag to calculate
 % %
 % % Output:
-% %   r_eps      : Autocorrelazione dei residui (normalizzata, max 1)
-% %   lag_eps    : Vettore dei ritardi per autocorrelazione
-% %   r_epsu     : Cross-correlazione residui-input (normalizzata)
-% %   lag_epsu   : Vettore dei ritardi per cross-correlazione
-% %   conf_limit : Limite di confidenza (scalare) universale al 95%
+% %   r_eps      : Autocorrelation of residuals (normalized, max 1)
+% %   lag_eps    : Lag vector for autocorrelation
+% %   r_epsu     : Cross-correlation of residuals and inputs (normalized)
+% %   lag_epsu   : Lag vector for cross-correlation
+% %   conf_limit : Asymptotic 99% confidence limit (scalar)
 % 
-% % Assicura che gli input siano vettori riga
+% % Ensure inputs are row vectors
 % eps = eps(:).';
 % u = u(:).';
 % 
 % N = length(eps);
 % if length(u) ~= N
-%     error('I vettori eps e u devono avere la stessa lunghezza.');
+%     error('Vectors eps and u must have the same length.');
 % end
 % 
-% % 1. Calcolo Autocorrelazione normalizzata
-% % 'coeff' normalizza la sequenza in modo che l'autocorrelazione a lag 0 sia 1
+% % 1. Calculate normalized Autocorrelation
+% % 'coeff' normalizes the sequence so that autocorrelation at lag 0 is 1
 % [r_eps, lag_eps] = xcorr(eps, max_lag, 'coeff');
 % 
-% % 2. Calcolo Cross-correlazione normalizzata
-% % 'coeff' divide la cross-correlazione per sqrt(var(eps) * var(u))
+% % 2. Calculate normalized Cross-correlation
+% % 'coeff' divides cross-correlation by sqrt(var(eps) * var(u))
 % [r_epsu, lag_epsu] = xcorr(eps, u, max_lag, 'coeff');
 % 
-% % Limite di confidenza asintotico al 99% per segnali normalizzati
+% % Asymptotic 99% confidence limit for normalized signals
 % conf_limit = 2.58 / sqrt(N);
 % end

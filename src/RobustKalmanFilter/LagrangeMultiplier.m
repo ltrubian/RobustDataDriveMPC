@@ -8,8 +8,8 @@ function lambda2 = LagrangeMultiplier(P, c, type)
 %                    (NOTE: that the eigenvalues are already computed to
 %                    decide the starting point)
 %
-% DEV-STATUS: la funzione è stata testata nel senso che "fast" e "normal"
-% riportano lo stesso risultato ed è lo zero della funzione (gamma - 2*c)
+% DEV-STATUS: The function has been tested: "fast" and "normal" modes
+% yield the same result, which is the root of the function (gamma - 2*c)
 arguments
     P    (:,:) double
     c    (1,1) double {mustBeNonnegative(c)}

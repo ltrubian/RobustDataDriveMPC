@@ -16,8 +16,8 @@ function [x_pred, V_next, G, P_next, lambda] = RobustKalmanFilter(sys, V, x, y, 
 %   P:      next nominal conditional covariance matrix
 %   lambda: current lagrangian multiplier
 % 
-% DEV-STATUS: la funzione è stata testata: per 300 step mantiene la
-% distanza dalla versione del professore con un errore di 1e-5
+% DEV-STATUS: The function has been tested: over 300 steps it maintains
+% a distance from the professor's version with an error of less than 1e-5
 arguments
     sys (1,1) struct
     V   (:,:) double
