@@ -22,6 +22,7 @@ con_params.N = 20;
 con_params.L = 10;
 con_params.beta = 1;
 con_params.mpc = "LFM";
+con_params.c_selec = "own";
 
 % Reference parameters
 ref_value = 5;        % Step reference magnitude

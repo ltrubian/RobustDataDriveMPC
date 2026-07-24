@@ -42,15 +42,26 @@ con_params.L = 10;
 %       beta:   forgetting factor
 con_params.beta = 1;
 %       mpc:    which strategy to use the MPC
-%               RKF-ext: exted the model to the N time horizon and make RKF
-%                        to that extended model (just starting point x0 is
-%                        given to MPC)
 %               RKF:     compute the RKF on the nominal model (just
 %                        starting point x0 is given to MPC)
 %               LFM:     the time-varying LFM is computed and used for the
 %                        prediction x0 (LFM model and x0 are given to MPC)
-con_params.mpc = "RKF";
-con_params.mpc = "LFM";
+choice = 2;
+switch choice
+    case 1
+        con_params.mpc = "RKF";
+    case 2
+        con_params.mpc = "LFM";
+end
+%       c_selection: which V and x_pred the filters will use.
+%                    each filter uses
+%                    best: the best x_pred (and V) of previous round
+%                    own:  its own x_pred and V
+%       WARNING: in the RKF approach the "best" selection is useless since
+%                the dynamics of the whole algorithm will always goes for
+%                the first c of the list
+con_params.c_selec = "best";
+% con_params.c_selec = "own";
 
 con_params.options = optimoptions('quadprog', ...
     'OptimalityTolerance', 1e-6, ...

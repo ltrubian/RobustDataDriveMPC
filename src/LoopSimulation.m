@@ -106,11 +106,11 @@ for t = 1:steps_sim
     optimal_u = zeros(N*m, size(set_c,1));
 
     for cj=1:length(RKFs)
-        switch con_params.mpc
-            case "RKF"
+        switch con_params.c_selec
+            case "own"
                 CC = cj;
-            case "LFM"
-                CC = cj; %c_best(t);
+            case "best"
+                CC = c_best(t);
         end
         % the proposed controller need to update both the model used by the
         % filter for the one-step ahead prediction of the free evolution,
