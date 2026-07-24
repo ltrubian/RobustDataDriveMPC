@@ -34,6 +34,9 @@ lambda2 = lambda0;
 
 while abs(gamma2) >= 1e-9 && abs(lambda0 - lambda1) > 1e-9
 
+    if abs(gamma1 - gamma0) < 1e-12
+        break;
+    end
     lambda2 = (lambda0 * gamma1 - gamma0 * lambda1 ) / (gamma1 - gamma0);
     gamma2 = gamfun(lambda2);
 
