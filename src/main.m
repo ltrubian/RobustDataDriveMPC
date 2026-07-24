@@ -5,11 +5,12 @@ rng(1)
 verbose = true;
 
 %% DEFINITION OF VARIABLES FOR THE SIMULATION
-% "DEBUG MODE": if True set all the noise/perturbation gains to 0
-% Use to check if the MPC controller works in ideal conditions
-debug = false;
-% model perturbation gain
-delta = 0.05;
+% if True set measure noise to zero
+measure_noise = false;
+% if True set process noise to zero
+process_noise = false;
+% Noise matrices diagonal elements
+delta = 0.5;
 % offset_free: introduces fictitious constant disturbances in the nominal
 % model allowing the MPC to compensate for offset
 offset_free = true;
@@ -77,7 +78,7 @@ end
 
 %% SIMULATION OF THE WHOLE SYSTEM
 [simX, simY, trueY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_nom, ...
-    steps_sim, init_con, reference, set_c, debug, verbose, ...
+    steps_sim, init_con, reference, set_c, measure_noise, process_noise, verbose, ...
     con_params);
 
 %% Plot and analysis

@@ -1,5 +1,5 @@
 function [simX, simY, trueY, simU, cpuT, RKFs, c_best] = LoopSimulation(model_sim, model_nom, ...
-    steps_sim, init_con, reference, set_c, debug, verbose, con_params)
+    steps_sim, init_con, reference, set_c, measure_noise, process_noise, verbose, con_params)
 %LOOPSIMULATION Simulate closed-loop system
 %
 %       <usage here>
@@ -23,15 +23,16 @@ function [simX, simY, trueY, simU, cpuT, RKFs, c_best] = LoopSimulation(model_si
 %   c_index:    the sequence of c's selected by the controller
 
 arguments
-    model_sim   (1,1) struct
-    model_nom   (1,1) struct
-    steps_sim   (1,1) double {mustBeInteger(steps_sim)}
-    init_con    (:,1) double
-    reference   (:,:) double
-    set_c       (:,1) double
-    debug       (1,1) logical
-    verbose     (1,1) logical
-    con_params  (1,1) struct
+    model_sim       (1,1) struct
+    model_nom       (1,1) struct
+    steps_sim       (1,1) double {mustBeInteger(steps_sim)}
+    init_con        (:,1) double
+    reference       (:,:) double
+    set_c           (:,1) double
+    measure_noise   (1,1) logical
+    process_noise   (1,1) logical
+    verbose         (1,1) logical
+    con_params      (1,1) struct
 end
 
 n = size(model_sim.A,1);        % state real world
@@ -84,8 +85,8 @@ end
 c_best = ones(steps_sim+1,1);
 
 % vt:   noise at time t
-vt = randn(n+p,1) * (1 - debug);
-if debug
+vt = randn(n+p,1) * (1 - measure_noise);
+if measure_noise
     for i=1:size(set_c,1)
         RKFs(i).x_pred(:,1) = paddata(init_con, nf, Side="trailing");
     end
@@ -93,8 +94,7 @@ end
 for t = 1:steps_sim
     %% Output of the system
     trueY(:,t) = model_sim.C * simX(:,t);
-    simY(:,t) = model_sim.C * simX(:,t) ...
-        + model_sim.D * vt;
+    simY(:,t) = trueY(:,t) + model_sim.D * vt;
     % to add the input -> output dynamics, make sure matrix and MPC can
     % deal with it. at the moment MPC is not ready
     % ... + model_sim.J * simU(:,t);
@@ -173,7 +173,7 @@ for t = 1:steps_sim
 
     %% Simulate the system
     % update noise
-    vt = randn(n+p,1) * (1 - debug);
+    vt = randn(n+p,1) * (1 - process_noise);
     % update state
     simX(:,t+1) = model_sim.A * simX(:,t) ...   % state
         + model_sim.B * vt ...                  % noise
