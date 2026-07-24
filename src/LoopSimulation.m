@@ -45,7 +45,7 @@ simX = NaN(n, steps_sim + 1);
 simY = NaN(p, steps_sim + 1);
 simU = NaN(m, steps_sim);
 trueY = NaN(p, steps_sim + 1);
-cpuT = NaN(size(simU,1), 1);
+cpuT = NaN(steps_sim, 1);
 
 % initialize the simulation initial information
 simX(:,1) = init_con;
@@ -110,7 +110,7 @@ for t = 1:steps_sim
             case "RKF"
                 CC = cj;
             case "LFM"
-                CC = c_best(t);
+                CC = cj; %c_best(t);
         end
         % the proposed controller need to update both the model used by the
         % filter for the one-step ahead prediction of the free evolution,
@@ -143,7 +143,9 @@ for t = 1:steps_sim
             model_con.x_min, model_con.x_max, ...
             model_con.u_min, model_con.u_max, con_params.options);
     end
-    optimal_values = optimal_values ./ (eps+max(optimal_values));
+    min_opt = min(optimal_values);
+    max_opt = max(optimal_values);
+    optimal_values = (optimal_values - min_opt) ./ (max_opt - min_opt + eps);
     optimal_values_ff = zeros(size(set_c,1),1);
     for cj=1:length(RKFs)
         % 3) Add past prediction error
@@ -155,13 +157,15 @@ for t = 1:steps_sim
         end
         optimal_values_ff(cj) = err;
     end
-    optimal_values = optimal_values + (optimal_values_ff ./(eps+max(optimal_values_ff)) );
+    min_ff = min(optimal_values_ff);
+    max_ff = max(optimal_values_ff);
+    optimal_values = optimal_values + (optimal_values_ff - min_ff) ./ (max_ff - min_ff + eps);
     % 4) Optimization step
     [~, c_best(t+1)] = min(optimal_values);
     % Update prediction of each filter based on the selected output
     for cj=1:length(RKFs)
         RKFs(cj).x_pred(:,t+1) = RKFs(cj).x_pred(:,t+1) ...
-            + model_fil.K * optimal_u(1:m,c_best(t+1));
+            + [model_nom.K; zeros(nf - nc, m)] * optimal_u(1:m,c_best(t+1));
     end
     % return input
     simU(:,t) = optimal_u(1:m, c_best(t+1));
@@ -178,7 +182,7 @@ for t = 1:steps_sim
     if verbose
         fprintf(['It: %3d/%3d  CPU: %2.2f TOTAL: %4.2f  c: %.1e ' ...
             'pred err: %3.3f min_opt: %3.3f max_opt: %3.3f\n'], ...
-            t, steps_sim, cpuT(t), sum(cpuT), RKFs(c_best(t)).c, ...
+            t, steps_sim, cpuT(t), sum(cpuT(1:t)), RKFs(c_best(t)).c, ...
             norm(RKFs(c_best(t)).x_pred(1:n,t) - simX(:,t) ,2), ...
             min(optimal_values),max(optimal_values));
     end

@@ -111,6 +111,9 @@ else
     prob.setup(H, f, A, l, u, 'warm_start', false, 'verbose', false, ...
         'eps_abs', 1e-8, 'eps_rel', 1e-8, 'polish', true);
     res = prob.solve();
+    if res.info.status_val ~= 1 && res.info.status_val ~= 2
+        error('OSQP Solver Failed: %s', res.info.status);
+    end
 
     u_opt = res.x(idx:end);
     cost_opt = res.info.obj_val;
