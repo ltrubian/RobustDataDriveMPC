@@ -62,6 +62,9 @@ switch n_model
         model_sim.D = [0.1, 0.05, 0.01 0.2; 0 0.2 0.1 0.05];% noise -> output
         model_sim.K = [5; 1];                               % input -> state
 end
+n = size(model_sim.A, 1);
+m = size(model_sim.K, 2);
+p = size(model_sim.C, 1);
 
 % MPC config
 
@@ -82,15 +85,13 @@ init_con = [1; 0];
 %   model_nom:  nominal (perturbed) model used by MPC controller. The
 %   perturbation of each entry is the product of the gain delta and a
 %   random matrix with compatible size
-model_nom.A = model_sim.A + delta * randn(size(model_sim.A)); % state -> state
-model_nom.B = model_sim.B + delta * randn(size(model_sim.B)); % noise -> state
-model_nom.C = model_sim.C + delta * randn(size(model_sim.C)); % state -> output
-model_nom.D = model_sim.D + delta * randn(size(model_sim.D)); % noise -> output
-model_nom.K = model_sim.K + delta * randn(size(model_sim.K)); % input -> state
+tmp_noise = delta * eye(n+p);
 
-n = size(model_sim.A, 1);
-m = size(model_sim.K, 2);
-p = size(model_sim.C, 1);
+model_nom.A = model_sim.A;
+model_nom.B = tmp_noise(1:n,:);
+model_nom.C = model_sim.C;
+model_nom.D = tmp_noise(n+1:end,:);
+model_nom.K = model_sim.K;
 
 % disturbances matrices for the offset-free tracking. Due to detectability
 % and the proprerty of offset-free tracking, the number of disturbances is
