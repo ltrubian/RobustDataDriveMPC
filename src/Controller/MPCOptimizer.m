@@ -81,14 +81,14 @@ ref_xu = BIG_m \ BIG_v;
 fy = C_blk' * blkdiag(kron(speye(N-1), weights.Q), weights.Pf);
 Hu = kron(speye(N), weights.R);
 % NOTE: H could be used directly, but (H+H')/2 is taken instead to
-%       ensure the Hessian matrix to be symmetric even in presence 
+%       ensure the Hessian matrix to be symmetric even in presence
 %       of numerical errors
 f = - [fy * reference; sparse(m*N,1)];
 f = - [fy * C_blk * ref_xu(1:n*N); Hu * ref_xu(n*N+1:end)];
 H = blkdiag(fy * C_blk, Hu);
 H = (H+H')/2;
 
-idx = 1 + n*N; % starting index for optimal input u 
+idx = 1 + n*N; % starting index for optimal input u
 
 % selection of the quadratic solver
 if ~isempty(options)
