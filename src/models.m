@@ -64,10 +64,14 @@ switch n_model
 end
 
 % MPC config
+
+% bounds
 model_nom.u_min = -2 * ones(1, size(model_sim.K,2));
 model_nom.u_max = 2 * ones(1, size(model_sim.K,2));
 model_nom.x_min = [-inf; -inf];
 model_nom.x_max = [+inf; +inf];
+
+% weights
 model_nom.weights.Q = 1*eye(size(model_sim.C,1));
 model_nom.weights.Pf = 1*eye(size(model_sim.C,1));
 model_nom.weights.R = 0.1*eye(size(model_sim.K,2));
@@ -77,7 +81,7 @@ init_con = [1; 0];
 
 %   model_nom:  nominal (perturbed) model used by MPC controller. The
 %   perturbation of each entry is the product of the gain delta and a
-%   random matrix with compatible sie
+%   random matrix with compatible size
 model_nom.A = model_sim.A + delta * randn(size(model_sim.A)); % state -> state
 model_nom.B = model_sim.B + delta * randn(size(model_sim.B)); % noise -> state
 model_nom.C = model_sim.C + delta * randn(size(model_sim.C)); % state -> output

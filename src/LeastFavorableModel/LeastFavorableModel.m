@@ -6,7 +6,7 @@ function [A, B, C, D] = LeastFavorableModel(sys, V, c, N, NF)
 %   [A, B, C, D] = LeastFavorableModel(sys, V, c, N, NF)
 %   if you need to control the length of the forward sweep NF (default= 2N)
 %
-% the state of returned system A,B,C,D is the extended state composed by
+% the state of returned system A, B, C, D is the extended state composed by
 % [x; e], the state x and the estimated error e
 %
 % WARNING: efficiency is not the goal of this function
@@ -69,13 +69,13 @@ for t=(NF - 1):-1:1
     % compute L after decomposition of the inverse of K
     Ls(:,:,t) = chol(iKs(:,:,t)) \ eye(size(iKs(:,:,1)));
     % update inverse of Omega to finally compute inverse of K for the next
-    % iteration. when t = 1 the cycle is breaked because there is no
+    % iteration. when t = 1 the cycle is broken because there is no
     % lambda(0) to use (and it is also unnecessary to compute iOs, iWs)
     if t == 1
         break;
     end
     iOs(:,:,t) = Acor' * iWs(:,:,t+1) * Acor + Hs(:,:,t)' * iKs(:,:,t) * Hs(:,:,t);
-    iWs(:,:,t) = iOs(:,:,t) + eye(n) / lambdas(1,t-1) ;
+    iWs(:,:,t) = iOs(:,:,t) + eye(n) / lambdas(1,t-1);
 end
 
 % compute the matrices of the extended state
