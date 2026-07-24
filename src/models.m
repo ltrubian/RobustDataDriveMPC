@@ -82,15 +82,12 @@ model_nom.weights.R = 0.1*eye(size(model_sim.K,2));
 %   init_con:   initial condition
 init_con = [1; 0];
 
-%   model_nom:  nominal (perturbed) model used by MPC controller. The
-%   perturbation of each entry is the product of the gain delta and a
-%   random matrix with compatible size
-tmp_noise = delta * eye(n+p);
-
+% model_nom: matrices A,C,K are the same as the real model, matrices B,D
+% are respectively the process and measure gain matrices
 model_nom.A = model_sim.A;
-model_nom.B = tmp_noise(1:n,:);
+model_nom.B = [delta*eye(n), zeros(n, p)];
 model_nom.C = model_sim.C;
-model_nom.D = tmp_noise(n+1:end,:);
+model_nom.D = [zeros(p, n), delta*eye(p)];
 model_nom.K = model_sim.K;
 
 % disturbances matrices for the offset-free tracking. Due to detectability
