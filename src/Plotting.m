@@ -24,7 +24,7 @@ for t = time_steps
 
     % Extract state prediction and calculate estimated output
     x_hat(:, t) = filters(idx).x_pred(1:n, t+1);
-    y_hat(:, t) = model_con.C(:,1:n) * x_hat(:, t);
+    y_hat(:, t) = model_con.C(:,1:n+r) * filters(idx).x_pred(1:n+r, t+1);
 
     % Extract robustness parameter 'c' (set 0 to 1e-8 for semilogy plotting)
     c_vals(t) = max(filters(idx).c, 1e-8);

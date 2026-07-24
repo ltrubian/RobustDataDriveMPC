@@ -34,10 +34,10 @@ arguments
     con_params  (1,1) struct
 end
 
-n = size(model_sim.A,1);
-p = size(model_sim.C,1);
-m = size(model_sim.K,2);
-r = size(model_nom.A,1) - n;
+n = size(model_sim.A,1);        % state real world
+p = size(model_sim.C,1);        % input real world
+m = size(model_sim.K,2);        % output real world
+r = size(model_nom.A,1) - n;    % fictitious disturbances (if introduced)
 N = con_params.N;
 
 %% actual state and control trajectories
@@ -55,7 +55,8 @@ simX(:,1) = init_con;
 % with a specific state, state dynamics, and initial covariance
 switch con_params.mpc
     case "RKF"
-        nf = n+r;
+        nc = n+r;       % controll state: state + disturbances (if present)
+        nf = n+r;       % estimated state: RKF is the controll sttate
         V_0 = eye(nf);
         model_fil = model_nom;
         model_con = model_nom;
@@ -70,7 +71,8 @@ switch con_params.mpc
             "K", cell2mat(arrayfun(@(k) (model_sim.A)^k, 0:N-1, 'UniformOutput', false)')* model_nom.K);
         model_con = model_nom;
     case "LFM"
-        nf = 2*(n+r);
+        nc = n+r;       % controll state: state + disturbances (if present)
+        nf = 2*(n+r);   % estimated state: LFM is double of controll sttate
         V_0 = eye(nf);
         % in this case the models used by controller and the filter are 
         % updated at each iteration and it is unnecessary to initialize
@@ -122,14 +124,14 @@ for t = 1:steps_sim
         % cases since they keep the nominal model for the MPC (and a static
         % model for the filter as RKF-ext)
         if strcmp("LFM", con_params.mpc)
-            [A, B, C, D] = LeastFavorableModel(model_nom, RKFs(c_best(t)).V(1:(nf/2),1:(nf/2),t), RKFs(cj).c, N);
+            [A, B, C, D] = LeastFavorableModel(model_nom, RKFs(c_best(t)).V(1:nc,1:nc,t), RKFs(cj).c, N);
             model_fil = struct( ...
                 "A", A(:,:,1), "B", B(:,:,1), ...
-                "C", C(:,:,1), "D", D(:,:,1), "K", [model_nom.K; zeros(nf/2,m)]);
+                "C", C(:,:,1), "D", D(:,:,1), "K", [model_nom.K; zeros(nc,m)]);
             model_con = struct( ...
-                "A", A(:,:,2:end), "C", C, "K", [model_nom.K; sparse(nf/2,m)], ...
-                "x_min", [model_nom.x_min; -Inf(nf/2,1)], ...
-                "x_max", [model_nom.x_max; +Inf(nf/2,1)], ...
+                "A", A(:,:,2:end), "C", C, "K", [model_nom.K; sparse(nc,m)], ...
+                "x_min", [model_nom.x_min; -Inf(nc,1)], ...
+                "x_max", [model_nom.x_max; +Inf(nc,1)], ...
                 "u_min", model_nom.u_min, "u_max", model_nom.u_max);
         end
         % 1) Prediction step
@@ -155,7 +157,7 @@ for t = 1:steps_sim
         for k=max(t-con_params.L, 1):(t-1) % time-window L
             % forgetting factor beta
             err = err * con_params.beta ...
-                + norm(simY(:,k) - model_nom.C(:,1:n) * RKFs(cj).x_pred(1:n,k),2)^2;
+                + norm(simY(:,k) - model_nom.C * RKFs(cj).x_pred(1:nc,k),2)^2;
         end
         optimal_values_ff(cj) = err;
     end

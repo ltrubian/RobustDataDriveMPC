@@ -10,14 +10,16 @@ verbose = true;
 debug = false;
 % Struct containing all the gains for noises/disturbances
 delta = 0.05;      % model perturbation gain
-% offset_free
+% offset_free: introduces fictitious constant disturbances in the nominal
+% model allowing the MPC to compensate for offset
 offset_free = true;
 
 [model_sim, model_con, init_con] = models(2, delta, offset_free);
 
-n = size(model_sim.A,1);
-m = size(model_sim.K,2);
-p = size(model_sim.C,1);
+n = size(model_sim.A,1);        % state real world
+m = size(model_sim.K,2);        % input real world
+p = size(model_sim.C,1);        % output real world
+r = size(model_con.A,1) - n;    % fictitious disturbances (if introduced)
 
 %   steps_sim:  number of step to simulate
 steps_sim = 100;
