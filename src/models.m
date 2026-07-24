@@ -70,7 +70,7 @@ model_nom.x_min = [-inf; -inf];
 model_nom.x_max = [+inf; +inf];
 model_nom.weights.Q = 1*eye(size(model_sim.C,1));
 model_nom.weights.Pf = 1*eye(size(model_sim.C,1));
-model_nom.weights.R = 0*eye(size(model_sim.K,2));
+model_nom.weights.R = 0.1*eye(size(model_sim.K,2));
 
 %   init_con:   initial condition
 init_con = [1; 0];
@@ -124,7 +124,7 @@ if offset_free
     model_nom.A = [model_nom.A model_nom.Bd; zeros(p, n) eye(p)];
     model_nom.K = [model_nom.K; zeros(p, m)];
     model_nom.C = [model_nom.C model_nom.Cd];
-    model_nom.B = [model_nom.B eye(n,p); eye(p,n+2*p)];
+    model_nom.B = [model_nom.B eye(n,p); eye(p,n+p) eye(p)];
     model_nom.D = [model_nom.D eye(p,p)];
     model_nom.x_min = [model_nom.x_min; -Inf(p,1)];
     model_nom.x_max = [model_nom.x_max; +Inf(p,1)];

@@ -8,8 +8,8 @@ verbose = true;
 % "DEBUG MODE": if True set all the noise/perturbation gains to 0
 % Use to check if the MPC controller works in ideal conditions
 debug = false;
-% Struct containing all the gains for noises/disturbances
-delta = 0.05;      % model perturbation gain
+% model perturbation gain
+delta = 0.05;
 % offset_free: introduces fictitious constant disturbances in the nominal
 % model allowing the MPC to compensate for offset
 offset_free = true;
@@ -49,7 +49,6 @@ con_params.beta = 1;
 %                        starting point x0 is given to MPC)
 %               LFM:     the time-varying LFM is computed and used for the
 %                        prediction x0 (LFM model and x0 are given to MPC)
-% con_params.mpc = "RKF-ext";
 con_params.mpc = "RKF";
 con_params.mpc = "LFM";
 
