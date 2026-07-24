@@ -46,8 +46,13 @@ con_params.beta = 1;
 %                        starting point x0 is given to MPC)
 %               LFM:     the time-varying LFM is computed and used for the
 %                        prediction x0 (LFM model and x0 are given to MPC)
-con_params.mpc = "RKF";
-con_params.mpc = "LFM";
+choice = 2;
+switch choice
+    case 1
+        con_params.mpc = "RKF";
+    case 2
+        con_params.mpc = "LFM";
+end
 %       c_selection: which V and x_pred the filters will use.
 %                    each filter uses
 %                    best: the best x_pred (and V) of previous round
