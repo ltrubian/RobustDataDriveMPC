@@ -72,6 +72,8 @@ ub = [repmat(x_max, N, 1); repmat(u_max, N, 1)];
 Aeq = sparse([speye(N*n) - A_blk, kron(speye(N), -K)]);
 beq = x0;
 
+% Reference computation: compute reference of input u and adapt reference
+% of output to the disturabances
 BIG_m = [Aeq;C_blk,sparse(p*N,m*N)]; BIG_v = [x0;reference];
 ref_xu = BIG_m \ BIG_v;
 
@@ -81,14 +83,13 @@ ref_xu = BIG_m \ BIG_v;
 fy = C_blk' * blkdiag(kron(speye(N-1), weights.Q), weights.Pf);
 Hu = kron(speye(N), weights.R);
 % NOTE: H could be used directly, but (H+H')/2 is taken instead to
-%       ensure the Hessian matrix to be symmetric even in presence 
+%       ensure the Hessian matrix to be symmetric even in presence
 %       of numerical errors
-f = - [fy * reference; sparse(m*N,1)];
-f = - [fy * C_blk * ref_xu(1:n*N); Hu * ref_xu(n*N+1:end)];
 H = blkdiag(fy * C_blk, Hu);
+f = - H * ref_xu;
 H = (H+H')/2;
 
-idx = 1 + n*N; % starting index for optimal input u 
+idx = 1 + n*N; % starting index for optimal input u
 
 % selection of the quadratic solver
 if ~isempty(options)
