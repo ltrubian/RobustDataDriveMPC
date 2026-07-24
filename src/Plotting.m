@@ -152,3 +152,71 @@ end
 % Link all X-axes in Figure 3
 linkaxes(findobj(fig3, 'type', 'axes'), 'x');
 xlim(findobj(fig3, 'type', 'axes'), [1, steps_sim]);
+
+%%
+% 
+% % Generazione dati di test fittizi (sostituisci con i tuoi vettori riga)
+% u_dati = simU(1:end-1);
+% eps_dati = reference(1,1:steps_sim-1) - simY(1,2:end-1);
+% 
+% % Chiamata alla funzione
+% max_lag = 20;
+% [r_eps, lag_eps, r_epsu, lag_epsu, conf_limit] = analizza_residui_norm(eps_dati, u_dati, max_lag);
+% 
+% % Plot Autocorrelazione Normalizzata
+% figure;
+% subplot(2,1,1);
+% stem(lag_eps, r_eps, 'filled');
+% hold on;
+% yline(conf_limit, '--r', 'Limite 99%');
+% yline(-conf_limit, '--r');
+% title('Autocorrelazione Normalizzata dei Residui');
+% xlabel('Lag (\tau)');
+% ylim([-1 1]); % Fissa i limiti Y essendo un segnale normalizzato
+% grid on;
+% 
+% % Plot Cross-correlazione Normalizzata
+% subplot(2,1,2);
+% stem(lag_epsu, r_epsu, 'filled');
+% hold on;
+% yline(conf_limit, '--r', 'Limite 99%');
+% yline(-conf_limit, '--r');
+% title('Cross-correlazione Normalizzata Residuo-Input');
+% xlabel('Lag (\tau)');
+% ylim([-1 1]);
+% grid on;
+% function [r_eps, lag_eps, r_epsu, lag_epsu, conf_limit] = analizza_residui_norm(eps, u, max_lag)
+% % ANALIZZA_RESIDUI_NORM Calcola auto e cross-correlazione normalizzate.
+% %
+% % Input:
+% %   eps     : Vettore riga dei residui (innovazione del filtro)
+% %   u       : Vettore riga degli ingressi di controllo
+% %   max_lag : Massimo ritardo (lag) da calcolare
+% %
+% % Output:
+% %   r_eps      : Autocorrelazione dei residui (normalizzata, max 1)
+% %   lag_eps    : Vettore dei ritardi per autocorrelazione
+% %   r_epsu     : Cross-correlazione residui-input (normalizzata)
+% %   lag_epsu   : Vettore dei ritardi per cross-correlazione
+% %   conf_limit : Limite di confidenza (scalare) universale al 95%
+% 
+% % Assicura che gli input siano vettori riga
+% eps = eps(:).';
+% u = u(:).';
+% 
+% N = length(eps);
+% if length(u) ~= N
+%     error('I vettori eps e u devono avere la stessa lunghezza.');
+% end
+% 
+% % 1. Calcolo Autocorrelazione normalizzata
+% % 'coeff' normalizza la sequenza in modo che l'autocorrelazione a lag 0 sia 1
+% [r_eps, lag_eps] = xcorr(eps, max_lag, 'coeff');
+% 
+% % 2. Calcolo Cross-correlazione normalizzata
+% % 'coeff' divide la cross-correlazione per sqrt(var(eps) * var(u))
+% [r_epsu, lag_epsu] = xcorr(eps, u, max_lag, 'coeff');
+% 
+% % Limite di confidenza asintotico al 99% per segnali normalizzati
+% conf_limit = 2.58 / sqrt(N);
+% end
