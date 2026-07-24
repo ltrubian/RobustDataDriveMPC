@@ -14,12 +14,12 @@ delta = 0.05;
 % model allowing the MPC to compensate for offset
 offset_free = true;
 
-[model_sim, model_con, init_con] = models(2, delta, offset_free);
+[model_sim, model_nom, init_con] = models(2, delta, offset_free);
 
 n = size(model_sim.A,1);        % state real world
 m = size(model_sim.K,2);        % input real world
 p = size(model_sim.C,1);        % output real world
-r = size(model_con.A,1) - n;    % fictitious disturbances (if introduced)
+r = size(model_nom.A,1) - n;    % fictitious disturbances (if introduced)
 
 %   steps_sim:  number of step to simulate
 steps_sim = 100;
@@ -42,15 +42,21 @@ con_params.L = 10;
 %       beta:   forgetting factor
 con_params.beta = 1;
 %       mpc:    which strategy to use the MPC
-%               RKF-ext: exted the model to the N time horizon and make RKF
-%                        to that extended model (just starting point x0 is
-%                        given to MPC)
 %               RKF:     compute the RKF on the nominal model (just
 %                        starting point x0 is given to MPC)
 %               LFM:     the time-varying LFM is computed and used for the
 %                        prediction x0 (LFM model and x0 are given to MPC)
 con_params.mpc = "RKF";
 con_params.mpc = "LFM";
+%       c_selection: which V and x_pred the filters will use.
+%                    each filter uses
+%                    best: the best x_pred (and V) of previous round
+%                    own:  its own x_pred and V
+%       WARNING: in the RKF approach the "best" selection is useless since
+%                the dynamics of the whole algorithm will always goes for
+%                the first c of the list
+con_params.c_selec = "best";
+% con_params.c_selec = "own";
 
 con_params.options = optimoptions('quadprog', ...
     'OptimalityTolerance', 1e-6, ...
@@ -65,9 +71,9 @@ else
 end
 
 %% SIMULATION OF THE WHOLE SYSTEM
-[simX, simY, trueY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_con, ...
+[simX, simY, trueY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_nom, ...
     steps_sim, init_con, reference, set_c, debug, verbose, ...
     con_params);
 
 %% Plot and analysis
-Plotting
+plotting;
