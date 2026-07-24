@@ -118,13 +118,19 @@ for t = 1:steps_sim
     optimal_u = zeros(N*m, size(set_c,1));
 
     for cj=1:length(RKFs)
+        switch con_params.mpc
+            case "RKF"
+                CC = cj;
+            case "LFM"
+                CC = c_best(t);
+        end
         % the proposed controller need to update both the model used by the
         % filter for the one-step ahead prediction of the free evolution,
         % and the model used by the MPC. This does NOT happen in the other
         % cases since they keep the nominal model for the MPC (and a static
         % model for the filter as RKF-ext)
         if strcmp("LFM", con_params.mpc)
-            [A, B, C, D] = LeastFavorableModel(model_nom, RKFs(c_best(t)).V(1:nc,1:nc,t), RKFs(cj).c, N);
+            [A, B, C, D] = LeastFavorableModel(model_nom, RKFs(CC).V(1:nc,1:nc,t), RKFs(cj).c, N);
             model_fil = struct( ...
                 "A", A(:,:,1), "B", B(:,:,1), ...
                 "C", C(:,:,1), "D", D(:,:,1), "K", [model_nom.K; zeros(nc,m)]);
@@ -137,8 +143,8 @@ for t = 1:steps_sim
         % 1) Prediction step
         [RKFs(cj).x_pred(:,t+1), RKFs(cj).V(:,:,t+1)] = ...
             RobustKalmanFilter(model_fil, ...
-            RKFs(c_best(t)).V(:,:,t), ...   % each filter uses the best
-            RKFs(c_best(t)).x_pred(:,t), ...   % prediction till now
+            RKFs(CC).V(:,:,t), ...   % each filter uses the best
+            RKFs(CC).x_pred(:,t), ...   % prediction till now
             simY(:,t), RKFs(cj).c);
 
         % 2) Controller step
