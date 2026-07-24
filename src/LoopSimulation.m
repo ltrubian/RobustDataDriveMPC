@@ -6,7 +6,7 @@ function [simX, simY, trueY, simU, cpuT, RKFs, c_best] = LoopSimulation(model_si
 %
 % INPUT:
 %   model_sim:  model to simulate
-%   model_con:  nominal startgin model used by MPC
+%   model_nom:  nominal starting model used by MPC
 %   steps_sim:  number of step to simulate
 %   init_con:   initial condition
 %   reference:  reference signal
@@ -68,7 +68,7 @@ switch con_params.mpc
             "B", kron(eye(N), model_nom.B), ...
             "C", kron([1, zeros(1,N-1)], model_nom.C), ...
             "D", kron([1, zeros(1,N-1)], model_nom.D), ...
-            "K", cell2mat(arrayfun(@(k) (model_sim.A)^k, 0:N-1, 'UniformOutput', false)')* model_nom.K);
+            "K", cell2mat(arrayfun(@(k) (model_nom.A)^k, 0:N-1, 'UniformOutput', false)')* model_nom.K);
         model_con = model_nom;
     case "LFM"
         nf = 2*n;
