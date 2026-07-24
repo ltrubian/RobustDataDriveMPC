@@ -34,6 +34,10 @@ else
     con_params.options = optimoptions('quadprog', 'Display', 'off');
 end
 
+% offset_free: introduces fictitious constant disturbances in the nominal
+% model allowing the MPC to compensate for offset
+offset_free = true;
+
 % Preallocate metric arrays
 tracking_pct         = zeros(N_mc, 1);  % Tracking RMSE as % of reference
 ss_error_pct         = zeros(N_mc, 1);  % Steady-state error as % of reference
@@ -48,7 +52,7 @@ for i = 1:N_mc
     rng(i); % Different seed for each run
     
     % Generate perturbed model
-    [model_sim, model_con, init_con] = models(2, delta*(1-debug));
+    [model_sim, model_con, init_con] = models(0, delta*(1-debug), offset_free);
     p = size(model_sim.C,1);
     n = size(model_sim.A, 1);
     m = size(model_sim.K, 2);
@@ -102,6 +106,9 @@ for i = 1:N_mc
     if mod(i, 5) == 0
         fprintf('  Completed %d / %d\n', i, N_mc);
     end
+
+    plotting;
+    
 end
 sim_time = toc;
 
