@@ -42,7 +42,7 @@ N = con_params.N;
 
 %% actual state and control trajectories
 simX = NaN(n, steps_sim + 1);
-simY = NaN(p, steps_sim + 1);
+simY = NaN(p, steps_sim);
 simU = NaN(m, steps_sim);
 trueY = NaN(p, steps_sim + 1);
 cpuT = NaN(steps_sim, 1);
