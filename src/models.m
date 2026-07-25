@@ -126,8 +126,8 @@ if offset_free
     model_nom.A = [model_nom.A model_nom.Bd; zeros(p, n) eye(p)];
     model_nom.K = [model_nom.K; zeros(p, m)];
     model_nom.C = [model_nom.C model_nom.Cd];
-    model_nom.B = [model_nom.B eye(n,p); eye(p,n+p) eye(p)];
-    model_nom.D = [model_nom.D eye(p,p)];
+    model_nom.B = [model_nom.B, zeros(n, p); zeros(p, n+p), eye(p)];
+    model_nom.D = [model_nom.D, zeros(p, p)];
     model_nom.x_min = [model_nom.x_min; -Inf(p,1)];
     model_nom.x_max = [model_nom.x_max; +Inf(p,1)];
     assert(rank([model_nom.B; model_nom.D]) == n+2*p, "Non-Invertible noise covariance")
