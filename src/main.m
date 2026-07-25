@@ -47,7 +47,7 @@ con_params.beta = 1;
 %                        starting point x0 is given to MPC)
 %               LFM:     the time-varying LFM is computed and used for the
 %                        prediction x0 (LFM model and x0 are given to MPC)
-choice = 2;
+choice = 1;
 switch choice
     case 1
         con_params.mpc = "RKF";
@@ -61,8 +61,13 @@ end
 %       WARNING: in the RKF approach the "best" selection is useless since
 %                the dynamics of the whole algorithm will always goes for
 %                the first c of the list
-con_params.c_selec = "best";
-% con_params.c_selec = "own";
+choice = 2;
+switch choice
+    case 1
+        con_params.c_selec = "best";
+    case 2
+        con_params.c_selec = "own";
+end
 
 con_params.options = optimoptions('quadprog', ...
     'OptimalityTolerance', 1e-6, ...
@@ -81,5 +86,12 @@ end
     steps_sim, init_con, reference, set_c, measure_noise, process_noise, verbose, ...
     con_params);
 
+%% RECAP simulation params and controller strategy
+fprintf("=== simulaition params  ===\n")
+fprintf("process noise: %s\nmeasure noise: %s\n\tdelta: %.2f\n", ...
+    string(process_noise), string(measure_noise), delta)
+fprintf("=== controller strategy ===\n")
+fprintf("mpc strategy: %s\n c selection: %s\n offset-free: %s\n", ...
+    con_params.mpc, con_params.c_selec, string(offset_free))
 %% Plot and analysis
 plotting;
