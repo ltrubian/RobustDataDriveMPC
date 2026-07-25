@@ -26,6 +26,7 @@ con_params.L = 10;
 con_params.beta = 1;
 con_params.mpc = "RKF";
 con_params.c_selec = "own";
+set_c = [0, logspace(-6, -1, 9)];
 
 % Reference parameters
 ref_value = 5;        % Step reference magnitude
@@ -60,7 +61,6 @@ for i = 1:N_mc
     % Reference signal
     reference = [zeros(p, t_step), ones(p, steps_sim - t_step) * ref_value];
     reference_ext = [reference, repmat(reference(:,end), 1, con_params.N)];
-    set_c = [0, logspace(-6, -1, 9)];
     
     % Actuator range
     u_range = model_con.u_max(1) - model_con.u_min(1);  % total range per input
