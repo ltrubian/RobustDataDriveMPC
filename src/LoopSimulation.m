@@ -85,8 +85,8 @@ end
 c_best = ones(steps_sim+1,1);
 
 % vt:   noise at time t
-vt = randn(n+p,1) * (1 - measure_noise);
-if measure_noise
+vt = randn(n+p,1) * measure_noise;
+if ~measure_noise
     for i=1:size(set_c,1)
         RKFs(i).x_pred(:,1) = paddata(init_con, nf, Side="trailing");
     end
@@ -94,7 +94,7 @@ end
 for t = 1:steps_sim
     %% Output of the system
     trueY(:,t) = model_sim.C * simX(:,t);
-    simY(:,t) = trueY(:,t) + model_sim.D * vt;
+    simY(:,t) = trueY(:,t) + model_sim.D * vt * measure_noise;
     % to add the input -> output dynamics, make sure matrix and MPC can
     % deal with it. at the moment MPC is not ready
     % ... + model_sim.J * simU(:,t);
@@ -173,10 +173,10 @@ for t = 1:steps_sim
 
     %% Simulate the system
     % update noise
-    vt = randn(n+p,1) * (1 - process_noise);
+    vt = randn(n+p,1);
     % update state
     simX(:,t+1) = model_sim.A * simX(:,t) ...   % state
-        + model_sim.B * vt ...                  % noise
+        + model_sim.B * vt * process_noise ...  % noise
         + model_sim.K * simU(:,t);              % input
 
     if verbose

@@ -5,10 +5,10 @@ rng(1)
 verbose = true;
 
 %% DEFINITION OF VARIABLES FOR THE SIMULATION
-% if True set measure noise to zero
-measure_noise = false;
-% if True set process noise to zero
-process_noise = false;
+% if false set measure noise to zero
+measure_noise = true;
+% if false set process noise to zero
+process_noise = true;
 % Noise matrices diagonal elements
 delta = 0.5;
 % offset_free: introduces fictitious constant disturbances in the nominal
