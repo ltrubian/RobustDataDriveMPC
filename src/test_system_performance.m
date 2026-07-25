@@ -15,13 +15,16 @@ addpath("LeastFavorableModel/")
 %% Configuration
 N_mc = 20;            % Number of Monte Carlo simulations
 verbose = false;
-debug = false;
+model = 0;
+measure_noise = true;
+process_noise = true;
 delta = 0.05;
+offset_free = true;
 steps_sim = 100;
 con_params.N = 20;
 con_params.L = 10;
 con_params.beta = 1;
-con_params.mpc = "LFM";
+con_params.mpc = "RKF";
 con_params.c_selec = "own";
 
 % Reference parameters
@@ -40,7 +43,7 @@ tracking_pct         = zeros(N_mc, 1);  % Tracking RMSE as % of reference
 ss_error_pct         = zeros(N_mc, 1);  % Steady-state error as % of reference
 control_pct          = zeros(N_mc, 1);  % Control effort as % of actuator range
 estimation_pct       = zeros(N_mc, 1);  % Estimation RMSE as % of state magnitude
-constraint_ok        = true(N_mc, 1);   % Pass/fail: constraints respected?
+constraint_viol_pct  = zeros(N_mc, 1);  % Max constraint violation as % of actuator range
 
 fprintf('Running Monte Carlo simulations (%d runs)...\n', N_mc);
 tic;
@@ -49,7 +52,7 @@ for i = 1:N_mc
     rng(i); % Different seed for each run
     
     % Generate perturbed model
-    [model_sim, model_con, init_con] = models(2, delta*(1-debug));
+    [model_sim, model_con, init_con] = models(model, delta, offset_free);
     p = size(model_sim.C,1);
     n = size(model_sim.A, 1);
     m = size(model_sim.K, 2);
@@ -64,7 +67,7 @@ for i = 1:N_mc
     
     % Run simulation
     [simX, simY, trueY, simU, cpuT, filters, c_index] = LoopSimulation(...
-        model_sim, model_con, steps_sim, init_con, reference_ext, set_c, debug, verbose, con_params);
+        model_sim, model_con, steps_sim, init_con, reference_ext, set_c, measure_noise, process_noise, verbose, con_params);
     
     % --- 1. Tracking Error (% of reference) ---
     % Only measured after the step is applied (t_step onward)
@@ -83,10 +86,11 @@ for i = 1:N_mc
     rms_u = sqrt(mean(simU.^2, 2));   % RMS per channel [m x 1]
     control_pct(i) = mean(rms_u / u_range) * 100;
     
-    % --- 4. Constraint Satisfaction (pass/fail) ---
-    u_min_viol = any(simU < model_con.u_min' - 1e-6, 'all');
-    u_max_viol = any(simU > model_con.u_max' + 1e-6, 'all');
-    constraint_ok(i) = ~u_min_viol && ~u_max_viol;
+    % --- 4. Constraint Violation (% of actuator range) ---
+    viol_min = max(0, model_con.u_min' - simU);
+    viol_max = max(0, simU - model_con.u_max');
+    max_viol = max([viol_min(:); viol_max(:)]);
+    constraint_viol_pct(i) = (max_viol / u_range) * 100;
     
     % --- 5. Estimation Error (% of state magnitude) ---
     x_hat = zeros(n, steps_sim);
@@ -132,12 +136,11 @@ fprintf('   Mean: %5.1f%%  |  Worst-case: %5.1f%%\n', ...
 fprintf('   -> "The controller uses %.1f%% of the available actuator capacity"\n\n', ...
     mean(control_pct));
 
-fprintf('4. CONSTRAINT SATISFACTION\n');
-n_pass = sum(constraint_ok);
-fprintf('   %d / %d runs passed  (%s)\n', n_pass, N_mc, ...
-    ternary(n_pass == N_mc, 'ALL PASS', 'SOME VIOLATIONS'));
-fprintf('   -> "Actuator limits were %s respected"\n\n', ...
-    ternary(n_pass == N_mc, 'always', 'NOT always'));
+fprintf('4. MAXIMUM CONSTRAINT VIOLATION (%% of actuator range)\n');
+fprintf('   Mean: %5.1f%%  |  Worst-case: %5.1f%%\n', ...
+    mean(constraint_viol_pct), max(constraint_viol_pct));
+fprintf('   -> "On average, the worst constraint violation is %.1f%% of actuator range"\n\n', ...
+    mean(constraint_viol_pct));
 
 fprintf('5. STATE ESTIMATION ERROR (after settling, %% of state magnitude)\n');
 fprintf('   Mean: %5.1f%%  |  Worst-case: %5.1f%%\n', ...
@@ -155,32 +158,32 @@ t = tiledlayout(1, 4, 'TileSpacing', 'compact', 'Padding', 'compact');
 title(t, sprintf('Performance over %d Monte Carlo runs (\\delta = %.2f)', N_mc, delta));
 
 nexttile;
-bar([mean(tracking_pct), mean(ss_error_pct)]);
-set(gca, 'XTickLabel', {'Overall', 'Steady-State'});
+boxchart([tracking_pct, ss_error_pct]);
+xticklabels({'Overall', 'Steady-State'});
 ylabel('% of reference');
 title('Tracking Error');
 yline(10, '--r', '10% threshold');
 
 nexttile;
-bar(mean(control_pct));
-set(gca, 'XTickLabel', {'Effort'});
+boxchart(control_pct);
+xticklabels({'Effort'});
 ylabel('% of actuator range');
 title('Control Effort');
 yline(50, '--r', '50% threshold');
 
 nexttile;
-bar(mean(estimation_pct));
-set(gca, 'XTickLabel', {'Filter'});
+boxchart(estimation_pct);
+xticklabels({'Filter'});
 ylabel('% of state magnitude');
 title('Estimation Error');
 yline(20, '--r', '20% threshold');
 
 nexttile;
-bar(n_pass / N_mc * 100, 'FaceColor', [0.2 0.7 0.3]);
-ylim([0 110]);
-ylabel('% of runs');
-title('Constraints OK');
-yline(100, '--r', '100% target');
+boxchart(constraint_viol_pct);
+xticklabels({'Violation'});
+ylabel('% of actuator range');
+title('Max Constraint Viol.');
+yline(0, '--r', '0% target');
 
 %% Helper
 function out = ternary(cond, a, b)
