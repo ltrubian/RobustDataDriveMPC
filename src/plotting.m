@@ -19,24 +19,24 @@ sigma_3 = zeros(n, steps_sim);
 % Extract the important quantities associated to the selected c-value at each time step
 for t = time_steps
     % Identify active filter index
-    idx = c_index(t+1); 
+    idx = c_index(t); 
     
     % Extract state prediction and calculate estimated output
-    x_hat(:, t) = filters(idx).x_pred(1:n, t+1);
-    y_hat(:, t) = model_nom.C * filters(idx).x_pred(1:n+r, t+1);
+    x_hat(:, t) = filters(idx).x_pred(1:n, t);
+    y_hat(:, t) = model_nom.C * filters(idx).x_pred(1:n+r, t);
     
     % Extract parameter 'c' and set 0 to 1e-8 for semilogy plotting
     c_vals(t) = max(filters(idx).c, 1e-8);
     
     % Extract 3-Sigma bounds from the least-favorable covariance matrix V
-    V_t = filters(idx).V(1:n, 1:n, t+1);
+    V_t = filters(idx).V(1:n, 1:n, t);
     sigma_3(:, t) = 3 * sqrt(diag(V_t));
 end
 
 % Compute state estimation error and output tracking residuals
-% NB: the initial state x0 is removed from the sequence of true states; the
-% first state in x_true corresponds to the first estimated state in x_hat
-x_true = simX(:, 2:steps_sim+1);
+% NB: the initial state x0 is included in the sequence of true states; 
+% the first state in x_true corresponds to the first estimated state in x_hat
+x_true = simX(:, 1:steps_sim);
 err_x  = x_true - x_hat;
 err_y  = reference(:, 1:steps_sim) - simY(:, 1:steps_sim);
 
