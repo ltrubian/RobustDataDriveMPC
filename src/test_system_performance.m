@@ -47,8 +47,8 @@ estimation_pct       = zeros(N_mc, 1);  % Estimation RMSE as % of state magnitud
 constraint_viol_pct  = zeros(N_mc, 1);  % Max constraint violation as % of actuator range
 
 fprintf('Running Monte Carlo simulations (%d runs)...\n', N_mc);
-tic;
 
+sim_time = tic;
 for i = 1:N_mc
     rng(i); % Different seed for each run
     
@@ -108,7 +108,7 @@ for i = 1:N_mc
         fprintf('  Completed %d / %d\n', i, N_mc);
     end
 end
-sim_time = toc;
+sim_time = toc(sim_time);
 
 %% Results Summary
 fprintf('\n============================================\n');
