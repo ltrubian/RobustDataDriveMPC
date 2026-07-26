@@ -1,7 +1,7 @@
-function [V_next, P_next, G, lambda] = RiccatiIteration(sys, V, c)
-%RobustKalmanFilter one iteration
+function [V_next, P_next, G, lambda] = riccati_iteration(sys, V, c)
+%%riccati_iteration one iteration
 %
-%   [V_next, P_next, G, lambda] = RiccatiIteration(sys, V, c)
+%   [V_next, P_next, G, lambda] = riccati_iteration(sys, V, c)
 %   compute one interation of the Riccati equation
 %
 % INPUT

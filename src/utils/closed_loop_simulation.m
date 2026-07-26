@@ -1,26 +1,35 @@
-function [simX, simY, trueY, simU, cpuT, RKFs, c_best] = LoopSimulation(model_sim, model_nom, ...
+function [simX, simY, trueY, simU, cpuT, RKFs, c_best] = closed_loop_simulation(model_sim, model_nom, ...
     steps_sim, init_con, reference, set_c, measure_noise, process_noise, verbose, con_params)
-%LOOPSIMULATION Simulate closed-loop system
+%closed_loop_simulation Simulate closed-loop system
 %
 %       <usage here>
 %
 % INPUT:
-%   model_sim:  model to simulate
-%   model_nom:  nominal starting model used by MPC
-%   steps_sim:  number of step to simulate
-%   init_con:   initial condition
-%   reference:  reference signal
-%   set_c:      set of hyperparamter 'c' to choose from
-%   debug:      remove all noise leaving deterministic evolution
-%   con_params: see NAMED-VALUE INPUTS of Controller function
+%   model_sim:      model to simulate (models are struct with fields A, B, C, D, K)
+%   model_nom:      nominal starting model used by MPC
+%   steps_sim:      number of step to simulate
+%   init_con:       initial condition
+%   reference:      reference signal
+%   set_c:          set of hyperparamter 'c' to choose from
+%   measure_noise:  remove measure noise leaving deterministic output
+%   process_noise:  remove process noise leaving deterministic evolution
+%   verbose:        output few info regarding single interation
+%   con_params:     struct with fields
+%           beta    forgetting factor in error prediction evaluation
+%           L       time window in error prediction evaluation
+%           N       predictive horizon used by controller
+%           c_selec "own"/"best" type of prediction used by filters
+%           mpc     "LFM"/"RKF" use or not the least-favorable model in MPC
+%           options object for quadprog solver (if empty OSQP is used)
 %
 % OUTPUT:
 %   simX:       simulated states
 %   simY:       simulated output
+%   trueY:      output without measurement noise
 %   simU:       controlled input
 %   cpuT:       cpu time of the controller
-%   filters:    struct with the dynamincs of the set of filters
-%   c_index:    the sequence of c's selected by the controller
+%   RKFs:       struct with the dynamincs of the set of filters
+%   c_best:     the sequence of c's selected by the controller
 
 arguments
     model_sim       (1,1) struct
@@ -107,9 +116,9 @@ for t = 1:steps_sim
 
     for cj=1:length(RKFs)
         switch con_params.c_selec
-            case "own"
+            case "own"  % each filter uses its own prediction
                 CC = cj;
-            case "best"
+            case "best" % each filter uses the best prediction till now
                 CC = c_best(t);
         end
         % the proposed controller need to update both the model used by the
@@ -118,7 +127,7 @@ for t = 1:steps_sim
         % cases since they keep the nominal model for the MPC (and a static
         % model for the filter as RKF-ext)
         if strcmp("LFM", con_params.mpc)
-            [A, B, C, D] = LeastFavorableModel(model_nom, RKFs(CC).V(1:nc,1:nc,t), RKFs(cj).c, N);
+            [A, B, C, D] = least_favorable_model(model_nom, RKFs(CC).V(1:nc,1:nc,t), RKFs(cj).c, N);
             model_fil = struct( ...
                 "A", A(:,:,1), "B", B(:,:,1), ...
                 "C", C(:,:,1), "D", D(:,:,1), "K", [model_nom.K; zeros(nc,m)]);
@@ -130,14 +139,14 @@ for t = 1:steps_sim
         end
         % 1) Prediction step
         [RKFs(cj).x_pred(:,t+1), RKFs(cj).V(:,:,t+1)] = ...
-            RobustKalmanFilter(model_fil, ...
-            RKFs(CC).V(:,:,t), ...   % each filter uses the best
-            RKFs(CC).x_pred(:,t), ...   % prediction till now
+            robust_kalman_filter(model_fil, ...
+            RKFs(CC).V(:,:,t), ...      
+            RKFs(CC).x_pred(:,t), ...   
             simY(:,t), RKFs(cj).c);
 
         % 2) Controller step
         x0 = paddata(RKFs(cj).x_pred(:,t+1), nf*N, Side="trailing");
-        [optimal_u(:,cj), optimal_values(cj)] = MPCOptimizer(x0, ...
+        [optimal_u(:,cj), optimal_values(cj)] = mpc_solver(x0, ...
             model_con.A, model_con.K, model_con.C, model_nom.weights, ...
             N, reshape(reference(:,t+1:t+N),[],1), ...
             model_con.x_min, model_con.x_max, ...

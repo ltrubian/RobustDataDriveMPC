@@ -1,6 +1,4 @@
-addpath("Controller/")
-addpath("RobustKalmanFilter/")
-addpath("LeastFavorableModel/")
+addpath("utils/")
 rng(1)
 verbose = true;
 
@@ -82,7 +80,7 @@ else
 end
 
 %% SIMULATION OF THE WHOLE SYSTEM
-[simX, simY, trueY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_nom, ...
+[simX, simY, trueY, simU, cpuT, filters, c_index] = closed_loop_simulation(model_sim, model_nom, ...
     steps_sim, init_con, reference, set_c, measure_noise, process_noise, verbose, ...
     con_params);
 

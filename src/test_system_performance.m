@@ -8,9 +8,7 @@
 %   - Steady-state error separated from transient behavior
 %   - Constraint satisfaction as pass/fail
 
-addpath("Controller/")
-addpath("RobustKalmanFilter/")
-addpath("LeastFavorableModel/")
+addpath("utils/")
 
 %% Configuration
 N_mc = 20;            % Number of Monte Carlo simulations
@@ -66,7 +64,7 @@ for i = 1:N_mc
     u_range = model_con.u_max(1) - model_con.u_min(1);  % total range per input
     
     % Run simulation
-    [simX, simY, trueY, simU, cpuT, filters, c_index] = LoopSimulation(...
+    [simX, simY, trueY, simU, cpuT, filters, c_index] = closed_loop_simulation(...
         model_sim, model_con, steps_sim, init_con, reference_ext, set_c, measure_noise, process_noise, verbose, con_params);
     
     % --- 1. Tracking Error (% of reference) ---
