@@ -27,6 +27,23 @@ steps_sim = 100;
 %   reference:  reference signal
 reference = [zeros(p, 10), ones(p, steps_sim-10) * 5];
 
+% brief check on eventual saturation problem of actuator at steady-state
+uss  = [model_sim.A - eye(n), model_sim.K; model_sim.C, zeros(p,m)] \ [zeros(n,1); reference(:,end)];
+uss = uss(n+1:end);
+% stochastic analysis
+% static input gain
+F = dlqr(model_sim.A, model_sim.K, model_nom.weights.Q, model_nom.weights.R);
+% static kalman gain
+L = dlqe(model_sim.A, eye(n), model_sim.C, model_sim.B*model_sim.B', model_sim.D*model_sim.D', model_sim.B*model_sim.D');
+% closed-loop matrices
+A = [model_sim.A - model_sim.K * F, model_sim.K * F; zeros(n,n), model_sim.A - model_sim.A* L * model_sim.C ];
+B = [model_sim.B; model_sim.B - L * model_sim.D];
+S1 = dlyap(A, B*B');
+S = [-F, F] * S1 * [-F, F]';
+% stochastic bounds
+uss + 3 * diag(sqrt(S))
+uss - 3 * diag(sqrt(S))
+
 %   set_c:      set of hyperparamter 'c' to choose from
 set_c = [0, logspace(-6, -1, 9)];
 
