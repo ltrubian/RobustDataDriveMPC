@@ -86,10 +86,10 @@ init_con = [1; 0];
 % model_nom: matrices A,C,K are the same as the real model, matrices B,D
 % are respectively the process and measure gain matrices
 model_nom.A = model_sim.A;
-model_nom.B = [delta*eye(n), zeros(n, p)];
+model_nom.B = [delta_process*eye(n), zeros(n, p)];
 model_nom.C = model_sim.C;
-model_nom.D = [zeros(p, n), delta*eye(p)];
 model_nom.K = model_sim.K;
+model_nom.D = [zeros(p, n), delta_measure*eye(p)];
 
 % disturbances matrices for the offset-free tracking. Due to detectability
 % and the proprerty of offset-free tracking, the number of disturbances is
