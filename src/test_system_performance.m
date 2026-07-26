@@ -37,6 +37,10 @@ else
     con_params.options = optimoptions('quadprog', 'Display', 'off');
 end
 
+% offset_free: introduces fictitious constant disturbances in the nominal
+% model allowing the MPC to compensate for offset
+offset_free = true;
+
 % Preallocate metric arrays
 tracking_pct         = zeros(N_mc, 1);  % Tracking RMSE as % of reference
 ss_error_pct         = zeros(N_mc, 1);  % Steady-state error as % of reference
@@ -105,6 +109,9 @@ for i = 1:N_mc
     if mod(i, 5) == 0
         fprintf('  Completed %d / %d\n', i, N_mc);
     end
+
+    plotting;
+    
 end
 sim_time = toc(sim_time);
 
