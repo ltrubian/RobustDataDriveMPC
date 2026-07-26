@@ -1,8 +1,9 @@
-function [model_sim, model_nom, init_con] = models(n_model, delta, offset_free)
+function [model_sim, model_nom, init_con] = models(n_model, delta_process, delta_measure, offset_free)
 arguments
-    n_model     (1,1) double {mustBeMember(n_model,0:7)}
-    delta       (1,1) double {mustBeNonnegative(delta)}
-    offset_free (1,1) logical
+    n_model       (1,1) double {mustBeMember(n_model,0:7)}
+    delta_process (1,1) double {mustBeNonnegative(delta_process)}
+    delta_measure (1,1) double {mustBeNonnegative(delta_measure)}
+    offset_free   (1,1) logical
 end
 switch n_model
     case 0

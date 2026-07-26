@@ -8,12 +8,13 @@ measure_noise = true;
 % if false set process noise to zero
 process_noise = true;
 % Noise matrices diagonal elements
-delta = 0.5;
+delta_process = 0.005;
+delta_measure = 0.5;
 % offset_free: introduces fictitious constant disturbances in the nominal
 % model allowing the MPC to compensate for offset
 offset_free = true;
 
-[model_sim, model_nom, init_con] = models(2, delta, offset_free);
+[model_sim, model_nom, init_con] = models(2, delta_process, delta_measure, offset_free);
 
 n = size(model_sim.A,1);        % state real world
 m = size(model_sim.K,2);        % input real world
@@ -86,8 +87,8 @@ end
 
 %% RECAP simulation params and controller strategy
 fprintf("=== simulaition params  ===\n")
-fprintf("process noise: %s\nmeasure noise: %s\n\tdelta: %.2f\n", ...
-    string(process_noise), string(measure_noise), delta)
+fprintf("process noise: %s\nmeasure noise: %s\n\tdelta_process: %.2f\n\tdelta_measure: %.2f\n", ...
+    string(process_noise), string(measure_noise), delta_process, delta_measure)
 fprintf("=== controller strategy ===\n")
 fprintf("mpc strategy: %s\n c selection: %s\n offset-free: %s\n", ...
     con_params.mpc, con_params.c_selec, string(offset_free))

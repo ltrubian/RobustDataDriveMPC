@@ -16,7 +16,8 @@ verbose = false;
 model = 0;
 measure_noise = true;
 process_noise = true;
-delta = 0.05;
+delta_process = 0.05;
+delta_measure = 0.05;
 offset_free = true;
 steps_sim = 100;
 con_params.N = 20;
@@ -55,7 +56,7 @@ for i = 1:N_mc
     rng(i); % Different seed for each run
     
     % Generate perturbed model
-    [model_sim, model_con, init_con] = models(model, delta, offset_free);
+    [model_sim, model_con, init_con] = models(model, delta_process, delta_measure, offset_free);
     p = size(model_sim.C,1);
     n = size(model_sim.A, 1);
     m = size(model_sim.K, 2);
@@ -120,7 +121,7 @@ fprintf('\n============================================\n');
 fprintf('  PERFORMANCE REPORT  (%d Monte Carlo runs)\n', N_mc);
 fprintf('  Reference = %.1f | Actuator range = [%.1f, %.1f]\n', ...
     ref_value, model_con.u_min(1), model_con.u_max(1));
-fprintf('  Uncertainty level delta = %.2f\n', delta);
+fprintf('  Uncertainty level delta_process = %.2f, delta_measure = %.2f\n', delta_process, delta_measure);
 fprintf('============================================\n\n');
 
 fprintf('1. TRACKING ERROR (after step, %% of reference = %.1f)\n', ref_value);
@@ -160,7 +161,7 @@ fprintf('============================================\n');
 %% Visualizations
 figure('Name', 'Monte Carlo Performance Metrics', 'Position', [100 100 900 400]);
 t = tiledlayout(1, 4, 'TileSpacing', 'compact', 'Padding', 'compact');
-title(t, sprintf('Performance over %d Monte Carlo runs (\\delta = %.2f)', N_mc, delta));
+title(t, sprintf('Performance over %d Monte Carlo runs (\\delta_p = %.2f, \\delta_m = %.2f)', N_mc, delta_process, delta_measure));
 
 nexttile;
 boxchart([tracking_pct, ss_error_pct]);
