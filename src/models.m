@@ -1,6 +1,6 @@
 function [model_sim, model_nom, init_con] = models(n_model, delta_process, delta_measure, offset_free)
 arguments
-    n_model       (1,1) double {mustBeMember(n_model,0:7)}
+    n_model       (1,1) double {mustBeMember(n_model,0:10)}
     delta_process (1,1) double {mustBeNonnegative(delta_process)}
     delta_measure (1,1) double {mustBeNonnegative(delta_measure)}
     offset_free   (1,1) logical
@@ -62,6 +62,22 @@ switch n_model
         model_sim.C = [1 0; 0.3 1];                         % state -> output
         model_sim.D = [0.1, 0.05, 0.01 0.2; 0 0.2 0.1 0.05];% noise -> output
         model_sim.K = [5; 1];                               % input -> state
+    case 8
+        load evaporator_model.mat A B C D K
+        model_sim.A = A;
+        model_sim.B = B;
+        model_sim.C = C;
+        model_sim.D = D;
+        model_sim.K = K;
+        clear A B C D K
+    case 9
+        load quadruple_tank_min_phase.mat A B C D K
+        model_sim.A = A;
+        model_sim.B = B;
+        model_sim.C = C;
+        model_sim.D = D;
+        model_sim.K = K;
+        clear A B C D K
 end
 n = size(model_sim.A, 1);
 m = size(model_sim.K, 2);
@@ -70,10 +86,10 @@ p = size(model_sim.C, 1);
 % MPC config
 
 % bounds
-model_nom.u_min = -2 * ones(1, size(model_sim.K,2));
-model_nom.u_max = 2 * ones(1, size(model_sim.K,2));
-model_nom.x_min = [-inf; -inf];
-model_nom.x_max = [+inf; +inf];
+model_nom.u_min = -3 * ones(1, size(model_sim.K,2));
+model_nom.u_max = +3 * ones(1, size(model_sim.K,2));
+model_nom.x_min = -Inf(n,1);
+model_nom.x_max = +Inf(n,1);
 
 % weights
 model_nom.weights.Q = 1*eye(size(model_sim.C,1));
@@ -81,7 +97,7 @@ model_nom.weights.Pf = 1*eye(size(model_sim.C,1));
 model_nom.weights.R = 0.1*eye(size(model_sim.K,2));
 
 %   init_con:   initial condition
-init_con = [1; 0];
+init_con = [12; 12; 1; 1];
 
 % model_nom: matrices A,C,K are the same as the real model, matrices B,D
 % are respectively the process and measure gain matrices
