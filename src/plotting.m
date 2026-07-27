@@ -117,6 +117,8 @@ linkaxes([ax3, ax4], 'x');
 xlim(ax3, [1, steps_sim]);
 
 %% FIGURE 3: Stochastic Analysis (3-Sigma Bounds)
+% TODO: SUBSTITUTE WITH OUTPUT PREDICTION ERROR!!! (kalman cannot predict
+% correctly the state but only the output, without bias)
 fig3 = figure('Name', 'Filter Validation: 3-Sigma Bounds');
 tl3 = tiledlayout(n, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
 for i = 1:n
