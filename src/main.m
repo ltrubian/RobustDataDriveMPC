@@ -22,29 +22,31 @@ p = size(model_sim.C,1);        % output real world
 r = size(model_nom.A,1) - n;    % fictitious disturbances (if introduced)
 
 %   steps_sim:  number of step to simulate
-steps_sim = 80;
+steps_sim = 200;
 
 %   reference:  reference signal
 reference = [ones(p, 10) * 10, ones(p, steps_sim-10) * 15];
-% 
-% % brief check on eventual saturation problem of actuator at steady-state
-uss  = [model_sim.A - eye(n), model_sim.K; model_sim.C, zeros(p,m)] \ [zeros(n,1); reference(:,end)];
-uss = uss(n+1:end);
-% stochastic analysis
-% static input gain
-F = dlqr(model_sim.A, model_sim.K, [model_nom.weights.Q, zeros(p,2); zeros(2,p) eye(2)], model_nom.weights.R);
-% static kalman gain
-L = dlqe(model_sim.A, eye(n), model_sim.C, model_sim.B*model_sim.B', model_sim.D*model_sim.D', model_sim.B*model_sim.D');
-% closed-loop matrices
-A = [model_sim.A - model_sim.K * F, model_sim.K * F; zeros(n,n), model_sim.A - model_sim.A* L * model_sim.C ];
-B = [model_sim.B; model_sim.B - L * model_sim.D];
-S1 = dlyap(A, B*B');
-S = [-F, F] * S1 * [-F, F]';
-% stochastic bounds
-[uss + 3 * diag(sqrt(S))]'
-[uss - 3 * diag(sqrt(S))]'
-% model_nom.u_max = [uss + 10 * diag(sqrt(S))]';
-% model_nom.u_min = [uss - 10 * diag(sqrt(S))]';
+try
+    % % brief check on eventual saturation problem of actuator at steady-state
+    uss  = [model_sim.A - eye(n), model_sim.K; model_sim.C, zeros(p,m)] \ [zeros(n,1); reference(:,end)];
+    uss = uss(n+1:end);
+    % stochastic analysis
+    % static input gain
+    F = dlqr(model_sim.A, model_sim.K, [model_nom.weights.Q, zeros(p,2); zeros(2,p) eye(2)], model_nom.weights.R);
+    % static kalman gain
+    L = dlqe(model_sim.A, eye(n), model_sim.C, model_sim.B*model_sim.B', model_sim.D*model_sim.D', model_sim.B*model_sim.D');
+    % closed-loop matrices
+    A = [model_sim.A - model_sim.K * F, model_sim.K * F; zeros(n,n), model_sim.A - model_sim.A* L * model_sim.C ];
+    B = [model_sim.B; model_sim.B - L * model_sim.D];
+    S1 = dlyap(A, B*B');
+    S = [-F, F] * S1 * [-F, F]';
+    % stochastic bounds
+    [uss + 3 * sqrt(diag(S))]'
+    [uss - 3 * sqrt(diag(S))]'
+catch
+end
+% model_nom.u_max = [uss + 10 * sqrt(diag(S))]';
+% model_nom.u_min = [uss - 10 * sqrt(diag(S))]';
 
 %   set_c:      set of hyperparamter 'c' to choose from
 set_c = [0, logspace(-6, -1, 9)];
