@@ -152,7 +152,7 @@ max_lag  = min(20, floor(steps_sim / 4));
 
 % Extract full multi-channel matrices [channels x time_steps]
 u_data   = simU(:, 1:steps_sim);
-eps_data = err_y(:, 1:steps_sim);
+eps_data = y_hat(:, 1:steps_sim) - simY(:, 1:steps_sim);
 
 % Run MIMO correlation analysis
 [R_eps, lag_eps, R_epsu, lag_epsu, conf_limit] = analizza_residui_mimo(eps_data, u_data, max_lag);
