@@ -8,8 +8,8 @@ measure_noise = true;
 % if false set process noise to zero
 process_noise = true;
 % Noise matrices diagonal elements
-delta_process = 0.005;
-delta_measure = 0.5;
+delta_process = 0.05;
+delta_measure = 0.05;
 % offset_free: introduces fictitious constant disturbances in the nominal
 % model allowing the MPC to compensate for offset
 offset_free = true;
@@ -22,25 +22,27 @@ p = size(model_sim.C,1);        % output real world
 r = size(model_nom.A,1) - n;    % fictitious disturbances (if introduced)
 
 %   steps_sim:  number of step to simulate
-steps_sim = 200;
+steps_sim = 80;
 
 %   reference:  reference signal
 reference = [ones(p, 10) * 10, ones(p, steps_sim-10) * 15];
 % 
-% % % brief check on eventual saturation problem of actuator at steady-state
-% uss  = [model_sim.A - eye(n), model_sim.K; model_sim.C, zeros(p,m)] \ [zeros(n,1); reference(:,end)];
-% uss = uss(n+1:end);
-% % stochastic analysis
-% % static input gain
-% F = dlqr(model_sim.A, model_sim.K, [model_nom.weights.Q, zeros(p+1,1); zeros(1,p+1) eye(2)], model_nom.weights.R);
-% % static kalman gain
-% L = dlqe(model_sim.A, eye(n), model_sim.C, model_sim.B*model_sim.B', model_sim.D*model_sim.D', model_sim.B*model_sim.D');
-% % closed-loop matrices
-% A = [model_sim.A - model_sim.K * F, model_sim.K * F; zeros(n,n), model_sim.A - model_sim.A* L * model_sim.C ];
-% B = [model_sim.B; model_sim.B - L * model_sim.D];
-% S1 = dlyap(A, B*B');
-% S = [-F, F] * S1 * [-F, F]';
-% % stochastic bounds
+% % brief check on eventual saturation problem of actuator at steady-state
+uss  = [model_sim.A - eye(n), model_sim.K; model_sim.C, zeros(p,m)] \ [zeros(n,1); reference(:,end)];
+uss = uss(n+1:end);
+% stochastic analysis
+% static input gain
+F = dlqr(model_sim.A, model_sim.K, [model_nom.weights.Q, zeros(p,2); zeros(2,p) eye(2)], model_nom.weights.R);
+% static kalman gain
+L = dlqe(model_sim.A, eye(n), model_sim.C, model_sim.B*model_sim.B', model_sim.D*model_sim.D', model_sim.B*model_sim.D');
+% closed-loop matrices
+A = [model_sim.A - model_sim.K * F, model_sim.K * F; zeros(n,n), model_sim.A - model_sim.A* L * model_sim.C ];
+B = [model_sim.B; model_sim.B - L * model_sim.D];
+S1 = dlyap(A, B*B');
+S = [-F, F] * S1 * [-F, F]';
+% stochastic bounds
+[uss + 3 * diag(sqrt(S))]'
+[uss - 3 * diag(sqrt(S))]'
 % model_nom.u_max = [uss + 10 * diag(sqrt(S))]';
 % model_nom.u_min = [uss - 10 * diag(sqrt(S))]';
 

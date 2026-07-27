@@ -10,7 +10,7 @@
 clear; clc;
 
 %% Configuration
-is_minimum_phase = false; % Set to false for non-minimum phase
+is_minimum_phase = true; % Set to false for non-minimum phase
 Ts = 1.0; % Sampling time in seconds
 
 %% Physical Parameters (Johansson, 2000)
@@ -53,8 +53,8 @@ Bc = [gamma1*k1/A1,            0;
                  0, (1-gamma2)*k2/A3;
       (1-gamma1)*k1/A4,            0];
 
-Cc = [kc, 0, 0, 0;
-       0, kc, 0, 0];
+Cc = [1, 0, 0, 0;
+       0, 1, 0, 0];
 
 Dc = zeros(2, 2);
 
@@ -75,14 +75,11 @@ p = 2; % Outputs
 
 % Define arbitrary small variances for the physical process and sensors
 % (e.g. 1e-4 for process noise on levels, 1e-3 for sensor noise)
-Q = diag([1e-4, 1e-4, 1e-4, 1e-4]); 
-R = diag([1e-3, 1e-3]);
-
 % Joint covariance matrix
-Sigma = blkdiag(Q, R);
+Sigma = randn(6) * 1e-1 / 2;
 
 % Cholesky factorization to find B and D
-NoiseMat = chol(Sigma, 'lower');
+NoiseMat = chol(Sigma * Sigma', 'lower');
 
 B = NoiseMat(1:n, :);
 D = NoiseMat(n+1:end, :);

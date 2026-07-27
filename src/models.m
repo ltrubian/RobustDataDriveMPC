@@ -86,7 +86,7 @@ p = size(model_sim.C, 1);
 % MPC config
 
 % bounds
-model_nom.u_min = -3 * ones(1, size(model_sim.K,2));
+model_nom.u_min = 0 * ones(1, size(model_sim.K,2));
 model_nom.u_max = +3 * ones(1, size(model_sim.K,2));
 model_nom.x_min = -Inf(n,1);
 model_nom.x_max = +Inf(n,1);
@@ -94,17 +94,17 @@ model_nom.x_max = +Inf(n,1);
 % weights
 model_nom.weights.Q = 1*eye(size(model_sim.C,1));
 model_nom.weights.Pf = 1*eye(size(model_sim.C,1));
-model_nom.weights.R = 0.1*eye(size(model_sim.K,2));
+model_nom.weights.R = 1*eye(size(model_sim.K,2));
 
 %   init_con:   initial condition
-init_con = [12; 12; 1; 1];
+init_con = [10; 10; 1; 1];
 
 % model_nom: matrices A,C,K are the same as the real model, matrices B,D
 % are respectively the process and measure gain matrices
 % Added 5% mismatch on A and 10% mismatch on K to highlight offset-free tracking
 model_nom.A = model_sim.A * 0.95; 
 model_nom.B = [delta_process*eye(n), zeros(n, p)];
-model_nom.C = model_sim.C;
+model_nom.C = model_sim.C * 1.05;
 model_nom.D = [zeros(p, n), delta_measure*eye(p)];
 model_nom.K = model_sim.K * 1.1;
 
@@ -145,7 +145,7 @@ if offset_free
     model_nom.K = [model_nom.K; zeros(p, m)];
     model_nom.C = [model_nom.C model_nom.Cd];
     model_nom.B = [model_nom.B, zeros(n, p); zeros(p, n+p), eye(p)];
-    model_nom.D = [model_nom.D, zeros(p, p)];
+    model_nom.D = [model_nom.D, eye(p, p)];
     model_nom.x_min = [model_nom.x_min; -Inf(p,1)];
     model_nom.x_max = [model_nom.x_max; +Inf(p,1)];
     assert(rank([model_nom.B; model_nom.D]) == n+2*p, "Non-Invertible noise covariance")
