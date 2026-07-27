@@ -5,8 +5,12 @@
 % y(t)   = C x(t) + D v(t)
 % where the joint noise covariance [B; D] is square and invertible.
 %
-% This uses a deterministic-stochastic Subspace Identification approach
-% to ensure the resulting process/measurement noise covariance is full rank.
+% This script performs the following steps:
+% 1. Divides the dataset (50/50).
+% 2. Estimates the model using the first half.
+% 3. Validates the model on the second half.
+% 4. Re-estimates the model using the full dataset.
+% 5. Saves the final model.
 
 clear; close all; clc;
 
@@ -29,111 +33,140 @@ y = data(:, 4:6);
 u = bsxfun(@minus, u, mean(u));
 y = bsxfun(@minus, y, mean(y));
 
-N = size(u, 1);
+N_total = size(u, 1);
 m = size(u, 2); % Inputs (3)
 p = size(y, 2); % Outputs (3)
 
-%% 2. User-Defined Subspace Parameters
+%% 2. Split Dataset
+split_idx = floor(N_total / 2);
+u_est = u(1:split_idx, :);
+y_est = y(1:split_idx, :);
+u_val = u(split_idx+1:end, :);
+y_val = y(split_idx+1:end, :);
+
+%% 3. User-Defined Subspace Parameters
 n = 4;   % State dimension
 f = 10;  % Past and future horizon lengths (tuning parameter)
 
 disp(['Identifying model with n=', num2str(n), ', m=', num2str(m), ', p=', num2str(p)]);
 
-%% 3. Form Block Hankel Matrices
-disp('Forming block Hankel matrices...');
-U = zeros(2*f*m, N - 2*f + 1);
-Y = zeros(2*f*p, N - 2*f + 1);
+%% 4. Estimate on First Half
+disp('---------------------------------------------------------');
+disp('Estimating model on the FIRST HALF of the dataset...');
+[A_est, K_est, B_est, C_est, D_est, Sigma_est] = identify_model(u_est, y_est, n, f);
 
-for i = 1:2*f
-    U((i-1)*m+1:i*m, :) = u(i:N-2*f+i, :)';
-    Y((i-1)*p+1:i*p, :) = y(i:N-2*f+i, :)';
+%% 5. Validate on Second Half
+disp('---------------------------------------------------------');
+disp('Validating the estimated model on the SECOND HALF of the dataset...');
+
+N_val = size(u_val, 1);
+x_sim = zeros(n, N_val);
+y_sim = zeros(p, N_val);
+
+% Initialize state (assume zero since data is mean-centered)
+x_sim(:, 1) = zeros(n, 1);
+
+for t = 1:N_val-1
+    y_sim(:, t) = C_est * x_sim(:, t);
+    x_sim(:, t+1) = A_est * x_sim(:, t) + K_est * u_val(t, :)';
+end
+y_sim(:, N_val) = C_est * x_sim(:, N_val);
+y_sim = y_sim'; % Convert to N_val x p
+
+% Calculate fit percentages
+fits = zeros(1, p);
+for i = 1:p
+    y_true = y_val(:, i);
+    y_hat = y_sim(:, i);
+    fits(i) = 100 * (1 - norm(y_true - y_hat) / norm(y_true - mean(y_true)));
+    disp(['Output y', num2str(i), ' Fit: ', num2str(fits(i), '%.2f'), '%']);
 end
 
-% Partition into past and future
+% Plotting
+figure('Name', 'Validation Results', 'NumberTitle', 'off');
+for i = 1:p
+    subplot(p, 1, i);
+    plot(1:N_val, y_val(:, i), 'k', 1:N_val, y_sim(:, i), 'r--');
+    legend('True', 'Simulated');
+    title(['Output y', num2str(i), ' (Fit: ', num2str(fits(i), '%.2f'), '%)']);
+    xlabel('Time step');
+    ylabel(['y_', num2str(i)]);
+end
+
+%% 6. Re-estimate on Whole Dataset
+disp('---------------------------------------------------------');
+disp('Re-estimating model on the WHOLE dataset...');
+[A, K, B, C, D, Sigma] = identify_model(u, y, n, f);
+
+%% 7. Save the Resulting Matrices
+save('evaporator_model.mat', 'A', 'K', 'B', 'C', 'D', 'Sigma');
+disp('---------------------------------------------------------');
+disp('Final model successfully saved to evaporator_model.mat.');
+
+
+%% ========================================================================
+%  Helper Function for Subspace Identification (N4SID)
+%  ========================================================================
+function [A, K, B, C, D, Sigma] = identify_model(u_data, y_data, n, f)
+N = size(u_data, 1);
+m = size(u_data, 2);
+p = size(y_data, 2);
+
+% Form block Hankel matrices
+U = zeros(2*f*m, N - 2*f + 1);
+Y = zeros(2*f*p, N - 2*f + 1);
+for i = 1:2*f
+    U((i-1)*m+1:i*m, :) = u_data(i:N-2*f+i, :)';
+    Y((i-1)*p+1:i*p, :) = y_data(i:N-2*f+i, :)';
+end
+
 Up = U(1:f*m, :);
 Uf = U(f*m+1:end, :);
 Yp = Y(1:f*p, :);
 Yf = Y(f*p+1:end, :);
-
-% Instrument variable (past inputs and outputs)
 Wp = [Up; Yp];
 
-%% 4. Oblique Projection and SVD (Estimate State Sequence)
-disp('Projecting and estimating state sequence (N4SID)...');
-
-% We want to project Yf along Uf onto Wp.
-% Mathematically: Yf /_{Uf} Wp. We use least squares.
-% Regress Yf onto [Wp; Uf]
+% Oblique Projection
 Regressors = [Wp; Uf];
 Theta = Yf * pinv(Regressors);
-
-% Extract the part corresponding to Wp
 L_W = Theta(:, 1:size(Wp,1));
-
-% Compute the projection
 Proj = L_W * Wp;
 
-% Perform Singular Value Decomposition on the projection
+% SVD to estimate state sequence
 [U_svd, S_svd, V_svd] = svd(Proj, 'econ');
-
-% Truncate to state dimension 'n'
 S_n = S_svd(1:n, 1:n);
 V_n = V_svd(:, 1:n);
+X = sqrt(S_n) * V_n';
 
-% Compute the state sequence for the future horizon
-% Size: n x (N - 2*f + 1)
-X = sqrt(S_n) * V_n'; 
-
-%% 5. Estimate System Matrices via Least Squares
-disp('Estimating system matrices A, K, C...');
-
-% States at time t and t+1
+% Least Squares for A, K, C
 X_t   = X(:, 1:end-1);
 X_tp1 = X(:, 2:end);
-
-% Inputs and outputs at time t (which corresponds to the first block of Uf and Yf)
 u_t = Uf(1:m, 1:end-1);
 y_t = Yf(1:p, 1:end-1);
 
-% Solve for A and K: X_{t+1} = A*X_t + K*u_t + w_t
 AK = X_tp1 * pinv([X_t; u_t]);
 A = AK(:, 1:n);
 K = AK(:, n+1:end);
 
-% Solve for C: y_t = C*X_t + e_t
 C = y_t * pinv(X_t);
 
-%% 6. Compute Residuals and Noise Matrices
-disp('Computing full-rank joint noise covariance and matrices B, D...');
-
-% Compute residuals
+% Compute Residuals and Noise Matrices
 w_t = X_tp1 - (A * X_t + K * u_t);
 e_t = y_t - C * X_t;
 
-% Joint sample covariance matrix
-% Note: Since we derived states from noisy data, w_t and e_t are not perfectly 
-% collinear. Thus, Sigma will generically have full rank (n+p).
+% Joint sample covariance
 Sigma = ([w_t; e_t] * [w_t; e_t]') / size(w_t, 2);
 
-% Check condition number to ensure it's numerically invertible
+% Check condition number and regularize if necessary
 if cond(Sigma) > 1e12
-    warning('The sample covariance matrix Sigma is ill-conditioned. Adding a tiny regularization term.');
     Sigma = Sigma + eye(size(Sigma)) * 1e-8;
 end
 
-% Perform Cholesky factorization: Sigma = L * L'
-% L will be a square lower triangular matrix of size (n+p) x (n+p)
-NoiseMat = chol(Sigma, 'lower');
-
 % Extract B and D matrices
+NoiseMat = chol(Sigma, 'lower');
 B = NoiseMat(1:n, :);
 D = NoiseMat(n+1:end, :);
 
-disp('---------------------------------------------------------');
-disp(['Matrix [B; D] size: ', num2str(size(NoiseMat, 1)), ' x ', num2str(size(NoiseMat, 2))]);
-disp(['Rank of [B; D]: ', num2str(rank(NoiseMat))]);
-disp('---------------------------------------------------------');
-
-%% 7. Save the Resulting Matrices
-save('evaporator_model.mat', 'A', 'K', 'B', 'C', 'D', 'Sigma');
-disp('Model successfully saved to evaporator_model.mat.');
+disp(['  -> Matrix [B; D] size: ', num2str(size(NoiseMat, 1)), ' x ', num2str(size(NoiseMat, 2))]);
+disp(['  -> Rank of [B; D]: ', num2str(rank(NoiseMat))]);
+end
