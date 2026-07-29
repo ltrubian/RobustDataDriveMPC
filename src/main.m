@@ -74,10 +74,10 @@ switch choice
     case 2
         con_params.mpc = "LFM";
 end
-%       c_selection: which V and x_pred the filters will use.
-%                    each filter uses
-%                    best: the best x_pred (and V) of previous round
-%                    own:  its own x_pred and V
+%   c_selection: which V and x_pred the filters will use.
+%                each filter uses
+%                best: the best x_pred (and V) of previous round
+%                own:  its own x_pred and V
 %       WARNING: in the RKF approach the "best" selection is useless since
 %                the dynamics of the whole algorithm will always goes for
 %                the first c of the list
@@ -108,7 +108,7 @@ end
 
 %% RECAP simulation params and controller strategy
 fprintf("=== simulaition params  ===\n")
-fprintf("process noise: %s\nmeasure noise: %s\n\tdelta_process: %.2f\n\tdelta_measure: %.2f\n", ...
+fprintf("process noise: %s\nmeasure noise: %s\ndelta process: %.2f\ndelta measure: %.2f\n", ...
     string(process_noise), string(measure_noise), delta_process, delta_measure)
 fprintf("=== controller strategy ===\n")
 fprintf("mpc strategy: %s\n c selection: %s\n offset-free: %s\n", ...

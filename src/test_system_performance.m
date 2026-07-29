@@ -13,7 +13,7 @@ addpath("utils/")
 %% Configuration
 N_mc = 20;            % Number of Monte Carlo simulations
 verbose = false;
-model = 0;
+model = 9;
 measure_noise = true;
 process_noise = true;
 delta_process = 0.05;
@@ -31,6 +31,9 @@ set_c = [0, logspace(-6, -1, 9)];
 ref_value = 5;        % Step reference magnitude
 t_step = 10;          % Time step when reference jumps
 t_settle = 30;        % After this step, we consider the system "settled"
+% Reference signal
+reference = [ones(p, t_step) * 10, ones(p, steps_sim-t_step) * 15];
+reference_ext = [reference, repmat(reference(:,end), 1, con_params.N)];
 
 if exist("osqp","class")
     con_params.options = [];
@@ -60,10 +63,6 @@ for i = 1:N_mc
     p = size(model_sim.C,1);
     n = size(model_sim.A, 1);
     m = size(model_sim.K, 2);
-    
-    % Reference signal
-    reference = [zeros(p, t_step), ones(p, steps_sim - t_step) * ref_value];
-    reference_ext = [reference, repmat(reference(:,end), 1, con_params.N)];
     
     % Actuator range
     u_range = model_con.u_max(1) - model_con.u_min(1);  % total range per input
@@ -98,12 +97,13 @@ for i = 1:N_mc
     % --- 5. Estimation Error (% of state magnitude) ---
     x_hat = zeros(n, steps_sim);
     for t = 1:steps_sim
-        idx = c_index(t+1);
-        x_hat(:, t) = filters(idx).x_pred(1:n, t+1);
+        idx = c_index(t);
+        x_hat(:, t) = filters(idx).x_pred(1:n, t);
+        y_hat(:, t) = model_nom.C * filters(idx).x_pred(1:n+r, t);
     end
-    err_est = simX(:, 2:steps_sim+1) - x_hat;
+    err_est = y_hat(:, 1:steps_sim) - simY(:, 1:steps_sim);
     % Normalize by the RMS of the true state (avoids division by zero at start)
-    x_rms = sqrt(mean(simX(:, t_settle+1:steps_sim+1).^2, 'all'));
+    x_rms = sqrt(mean(simY(:, t_settle:steps_sim).^2, 'all'));
     rmse_est = sqrt(mean(err_est(:, t_settle:end).^2, 'all'));
     estimation_pct(i) = (rmse_est / x_rms) * 100;
     
@@ -111,7 +111,7 @@ for i = 1:N_mc
         fprintf('  Completed %d / %d\n', i, N_mc);
     end
 
-    plotting;
+    % plotting;
     
 end
 sim_time = toc(sim_time);
@@ -121,7 +121,9 @@ fprintf('\n============================================\n');
 fprintf('  PERFORMANCE REPORT  (%d Monte Carlo runs)\n', N_mc);
 fprintf('  Reference = %.1f | Actuator range = [%.1f, %.1f]\n', ...
     ref_value, model_con.u_min(1), model_con.u_max(1));
-fprintf('  Uncertainty level delta_process = %.2f, delta_measure = %.2f\n', delta_process, delta_measure);
+fprintf('Uncertainty level\n  delta_process = %.2f, delta_measure = %.2f\n', delta_process, delta_measure);
+fprintf("Controller strategy\n  rkf/lfm = %s\t c-selection = %s\n  offset-free = %s\n", ...
+    con_params.mpc, con_params.c_selec, string(offset_free))
 fprintf('============================================\n\n');
 
 fprintf('1. TRACKING ERROR (after step, %% of reference = %.1f)\n', ref_value);
