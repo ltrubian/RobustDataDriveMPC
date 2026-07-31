@@ -71,7 +71,12 @@ switch n_model
         model_sim.K = K;
         clear A B C D K
     case 9
-        load quadruple_tank_min_phase.mat A B C D K
+        fileName = 'quadruple_tank_min_phase.mat';
+        if ~isfile(fileName)
+            disp('Model file not found. Generating quadruple tank model...');
+            generate_quadruple_tank_model(); 
+        end
+        load(fileName, 'A', 'B', 'C', 'D', 'K');
         model_sim.A = A;
         model_sim.B = B;
         model_sim.C = C;
