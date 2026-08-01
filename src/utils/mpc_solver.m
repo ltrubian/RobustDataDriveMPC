@@ -64,10 +64,6 @@ else
     C_blk = kron(speye(N), C);
 end
 
-% BOUNDS ON THE OPTIMIZATION VARIABLE
-lb = [repmat(x_min, N, 1); repmat(u_min, N, 1)];
-ub = [repmat(x_max, N, 1); repmat(u_max, N, 1)];
-
 % MATRICES to construct EQUALITY CONTRAINT (state evolution constraint)
 Aeq = sparse([speye(N*n) - A_blk, kron(speye(N), -K)]);
 beq = x0;
@@ -82,31 +78,44 @@ ref_xu = BIG_m \ BIG_v;
 % since the reference is on the output
 fy = C_blk' * blkdiag(kron(speye(N-1), weights.Q), weights.Pf);
 Hu = kron(speye(N), weights.R);
+% cost on the slack variable must be high so that the solver uses them only
+% is strictly necessary in the prediction of the state. The choosen cost is
+% 3 order of magnitude higher than the cost on the state
+Hs = speye(n*N) * 1e3 * max([weights.Q(:); weights.Pf(:) ] );
 % NOTE: H could be used directly, but (H+H')/2 is taken instead to
 %       ensure the Hessian matrix to be symmetric even in presence
 %       of numerical errors
-H = blkdiag(fy * C_blk, Hu);
-f = - H * ref_xu;
+H = blkdiag(fy * C_blk, Hu, Hs);
+f = - H * [ref_xu; ones(N*n, 1)];
 H = (H+H')/2;
 
 idx = 1 + n*N; % starting index for optimal input u
 
 % selection of the quadratic solver
 if ~isempty(options)
-    [z_opt, cost_opt, flag, solver_info] = quadprog(H, f, [], [], ...
+    % BOUNDS ON THE OPTIMIZATION VARIABLE
+    lb = [-Inf(N*n, 1); repmat(u_min, N, 1); zeros(N*n, 1)];
+    ub = [+Inf(N*n, 1); repmat(u_max, N, 1); +Inf(N*n, 1)];
+    Ain = [+speye(N*n), sparse(N*n,N*m), -speye(N*n);
+           -speye(N*n), sparse(N*n,N*m), -speye(N*n)];
+    bin = [repmat(x_max, N, 1); -repmat(x_min, N, 1)];
+    Aeq = [Aeq, sparse(N*n, N*n)];
+
+    [z_opt, cost_opt, flag, solver_info] = quadprog(H, f, Ain, bin, ...
         Aeq, beq, lb, ub, zeros((n+m)*N,1), options);
 
     % check the flag to make sure that a solution exists, otherwise, throw error
     if(flag ~= 1)
         warning(solver_info.message)
     end
-    u_opt  = z_opt(idx:end);
+    u_opt  = z_opt(idx:idx+N*m-1);
     % u_opt = u_opt(1:m);
 else
-    l = [beq; lb];
-    u = [beq; ub];
-    A = [Aeq;
-        speye(N*(n+m))];
+    l = [beq; repmat(u_min, N, 1); repmat(x_min, N, 1)];
+    u = [beq; repmat(u_max, N, 1); repmat(x_max, N, 1)];
+    A = [Aeq, sparse(N*n, N*n);
+        sparse(N*m, N*n), speye(N*m), sparse(N*m, N*n);
+        speye(N*n), sparse(N*n,N*m), speye(N*n)];
 
     prob = osqp;
     prob.setup(H, f, A, l, u, 'warm_start', false, 'verbose', false, ...
@@ -116,7 +125,7 @@ else
         warning('OSQP Solver Failed: %s', res.info.status);
     end
 
-    u_opt = res.x(idx:end);
+    u_opt = res.x(idx:idx+N*m-1);
     cost_opt = res.info.obj_val;
 end
 end

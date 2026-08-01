@@ -45,8 +45,8 @@ model_nom.D = [zeros(p, n), delta_measure*eye(p)];
 model_nom.K = model_sim.K * 1.1;
 
 % Build MPC bounds and weights from scalar config in MPC_config
-model_nom.u_min   = MPC_config.u_min * ones(1, m);
-model_nom.u_max   = MPC_config.u_max * ones(1, m);
+model_nom.u_min   = MPC_config.u_min * ones(m, 1);
+model_nom.u_max   = MPC_config.u_max * ones(m, 1);
 model_nom.x_min   = MPC_config.x_min * ones(n, 1);
 model_nom.x_max   = MPC_config.x_max * ones(n, 1);
 model_nom.weights.Q  = MPC_config.Q * eye(p);
