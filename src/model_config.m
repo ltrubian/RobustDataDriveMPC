@@ -1,10 +1,18 @@
-function [model_sim, model_nom, init_con] = model_config(delta_process, delta_measure, offset_free)
+function [model_sim, model_nom, init_con] = model_config(noise_config, MPC_config)
 
 arguments
-    delta_process (1,1) double {mustBeNonnegative(delta_process)}
-    delta_measure (1,1) double {mustBeNonnegative(delta_measure)}
-    offset_free   (1,1) logical
+    noise_config (1,1) struct
+    MPC_config   (1,1) struct
 end
+
+% Unpack noise configuration
+delta_process = noise_config.delta_process;
+delta_measure = noise_config.delta_measure;
+mustBeNonnegative(delta_process);
+mustBeNonnegative(delta_measure);
+
+% Unpack MPC configuration
+offset_free = MPC_config.offset_free;
 
 fileName = 'quadruple_tank.mat';
 if ~isfile(fileName)
@@ -23,18 +31,6 @@ n = size(model_sim.A, 1);
 m = size(model_sim.K, 2);
 p = size(model_sim.C, 1);
 
-% MPC config
-
-% bounds
-model_nom.u_min = 0 * ones(1, size(model_sim.K,2));
-model_nom.u_max = +3 * ones(1, size(model_sim.K,2));
-model_nom.x_min = -Inf(n,1);
-model_nom.x_max = +Inf(n,1);
-
-% weights
-model_nom.weights.Q = 1*eye(size(model_sim.C,1));
-model_nom.weights.Pf = 1*eye(size(model_sim.C,1));
-model_nom.weights.R = 1*eye(size(model_sim.K,2));
 
 %   init_con:   initial condition
 init_con = [10; 10; 1; 1];
@@ -47,6 +43,15 @@ model_nom.B = [delta_process*eye(n), zeros(n, p)];
 model_nom.C = model_sim.C * 1.05;
 model_nom.D = [zeros(p, n), delta_measure*eye(p)];
 model_nom.K = model_sim.K * 1.1;
+
+% Build MPC bounds and weights from scalar config in MPC_config
+model_nom.u_min   = MPC_config.u_min * ones(1, m);
+model_nom.u_max   = MPC_config.u_max * ones(1, m);
+model_nom.x_min   = MPC_config.x_min * ones(n, 1);
+model_nom.x_max   = MPC_config.x_max * ones(n, 1);
+model_nom.weights.Q  = MPC_config.Q * eye(p);
+model_nom.weights.Pf = MPC_config.Pf * eye(p);
+model_nom.weights.R  = MPC_config.R * eye(m);
 
 % disturbances matrices for the offset-free tracking. Due to detectability
 % and the proprerty of offset-free tracking, the number of disturbances is
