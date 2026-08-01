@@ -95,10 +95,8 @@ c_best = ones(steps_sim+1,1);
 
 % vt:   noise at time t
 vt = randn(n+p,1) * measure_noise;
-if ~measure_noise
-    for i=1:size(set_c,1)
-        RKFs(i).x_pred(:,1) = paddata(init_con, nf, Side="trailing");
-    end
+for i=1:size(set_c,1)
+    RKFs(i).x_pred(:,1) = paddata(init_con, nf, Side="trailing");
 end
 for t = 1:steps_sim
     %% Output of the system
