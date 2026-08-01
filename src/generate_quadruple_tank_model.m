@@ -8,7 +8,7 @@ function generate_quadruple_tank_model()
     % y(t)   = C x(t) + D v(t)
     % where the joint noise covariance [B; D] is square and invertible.
     
-    disp('Generating Minimum Phase Quadruple-Tank Model...');
+    disp('Generating Quadruple-Tank Model...');
     
     %% Configuration
     Ts = 1; % Sampling time in seconds
@@ -84,6 +84,6 @@ function generate_quadruple_tank_model()
     disp(['Rank of [B; D]: ', num2str(rank(NoiseMat))]);
     disp('---------------------------------------------------------');
     
-    save('quadruple_tank_min_phase.mat', 'A', 'K', 'B', 'C', 'D', 'Sigma', 'Ts');
-    disp('Model saved to quadruple_tank_min_phase.mat');
+    save('quadruple_tank.mat', 'A', 'K', 'B', 'C', 'D', 'Sigma', 'Ts');
+    disp('Model saved to quadruple_tank.mat');
 end
