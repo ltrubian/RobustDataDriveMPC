@@ -31,7 +31,6 @@ n = size(model_sim.A, 1);
 m = size(model_sim.K, 2);
 p = size(model_sim.C, 1);
 
-
 %   init_con:   initial condition
 init_con = [10; 10; 1; 1];
 

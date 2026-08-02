@@ -5,11 +5,11 @@ addpath("utils/")
 % Enable terminal output during execution
 verbose = false;
 
-% True model simulation noises config
+% True and nominal models noises config
 noise_config = struct( ...
-    "measure_noise", true, ...  % if false set measure noise to zero
-    "process_noise", true, ...  % if false set process noise to zero
-    "delta_process", 0.05, ...  % Noise matrices diagonal elements
+    "measure_noise", true, ...  % enable measure noise in true model simulation
+    "process_noise", true, ...  % enable process noise in true model simulation
+    "delta_process", 0.05, ...  % nominal model noise matrices diagonal elements
     "delta_measure", 0.05  ...  %   "
 );
 
