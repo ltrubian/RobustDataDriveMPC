@@ -69,28 +69,6 @@ reference = [ones(p, 10) * 10, ones(p, steps_sim-10) * 15];
 % update reference: last value is repeated so that the controller has enough preview
 reference = [reference, repmat(reference(:,end), 1, con_params.N)];
 
-try
-    % brief check on eventual saturation problem of actuator at steady-state
-    uss  = [model_sim.A - eye(n), model_sim.K; model_sim.C, zeros(p,m)] \ [zeros(n,1); reference(:,end)];
-    uss = uss(n+1:end);
-    % stochastic analysis
-    % static input gain
-    F = dlqr(model_sim.A, model_sim.K, [model_nom.weights.Q, zeros(p,2); zeros(2,p) eye(2)], model_nom.weights.R);
-    % static kalman gain
-    L = dlqe(model_sim.A, eye(n), model_sim.C, model_sim.B*model_sim.B', model_sim.D*model_sim.D', model_sim.B*model_sim.D');
-    % closed-loop matrices
-    A = [model_sim.A - model_sim.K * F, model_sim.K * F; zeros(n,n), model_sim.A - model_sim.A* L * model_sim.C ];
-    B = [model_sim.B; model_sim.B - L * model_sim.D];
-    S1 = dlyap(A, B*B');
-    S = [-F, F] * S1 * [-F, F]';
-    % stochastic bounds
-    [uss + 3 * sqrt(diag(S))]'
-    [uss - 3 * sqrt(diag(S))]'
-catch
-end
-% model_nom.u_max = [uss + 10 * sqrt(diag(S))]';
-% model_nom.u_min = [uss - 10 * sqrt(diag(S))]';
-
 %% SIMULATION LOOP
 [simX, simY, trueY, simU, cpuT, filters, c_index] = closed_loop_simulation(model_sim, model_nom, ...
     steps_sim, init_con, reference, set_c, noise_config.measure_noise, noise_config.process_noise, verbose, ...

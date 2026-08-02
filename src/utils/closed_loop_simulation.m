@@ -102,10 +102,6 @@ for t = 1:steps_sim
     %% Output of the system
     trueY(:,t) = model_sim.C * simX(:,t);
     simY(:,t) = trueY(:,t) + model_sim.D * vt * measure_noise;
-    % to add the input -> output dynamics, make sure matrix and MPC can
-    % deal with it. at the moment MPC is not ready
-    % ... + model_sim.J * simU(:,t);
-
 
     %% Controller and Filter:
     tic;
@@ -172,7 +168,7 @@ for t = 1:steps_sim
     % Update prediction of each filter based on the selected output
     for cj=1:length(RKFs)
         RKFs(cj).x_pred(:,t+1) = RKFs(cj).x_pred(:,t+1) ...
-            + [model_nom.K; zeros(nf - nc, m)] * optimal_u(1:m,c_best(t+1));
+            + model_fil.K * optimal_u(1:m,c_best(t+1));
     end
     % return input
     simU(:,t) = optimal_u(1:m, c_best(t+1));

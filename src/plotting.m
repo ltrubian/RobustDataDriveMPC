@@ -136,7 +136,7 @@ for i = 1:p
     perc_out = (out_of_bounds / steps_sim) * 100;
     
     % Dynamic Title & Labels
-    title_str = sprintf('\\textbf{State Error $e_%d$ (Out of bounds: %.1f\\%%)}', i, perc_out);
+    title_str = sprintf('\\textbf{Output Error $e_%d$ (Out of bounds: %.1f\\%%)}', i, perc_out);
     title(title_str, latex_opt{:}, 'FontSize', fs_title);
     ylabel(sprintf('$e_%d$', i), latex_opt{:}, 'FontSize', fs_label);
     if i == 1
