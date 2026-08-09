@@ -142,7 +142,7 @@ for i = 1:p
     if i == 1
         legend('Location', 'best', latex_opt{:});
     end
-    if i == n
+    if i == p
         xlabel('Time Step $k$', latex_opt{:}, 'FontSize', fs_label);
     end
 end
