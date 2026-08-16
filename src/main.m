@@ -53,6 +53,7 @@ steps_sim = 200;
 
 % set_c: set of hyperparamter 'c' to choose from
 set_c = [0, logspace(-6, -1, 9)];
+% set_c = [0, linspace(1e-6, 1e-1, 9)];
 
 % ----------------------- END-CONFIG -----------------------
 
