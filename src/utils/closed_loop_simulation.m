@@ -91,7 +91,7 @@ for i=1:size(set_c,1)
     RKFs(i).c = set_c(i);
 end
 % sequence of the (indexes) tolerances selected by the controller
-c_best = ones(steps_sim+1,1);
+c_best = NaN(steps_sim+1,1);
 
 % vt:   noise at time t
 vt = randn(n+p,1) * measure_noise;
