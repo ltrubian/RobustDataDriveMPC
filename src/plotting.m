@@ -18,8 +18,8 @@ sigma_3 = zeros(p, steps_sim);
 
 % Extract the important quantities associated to the selected c-value at each time step
 for t = time_steps
-    % Identify active filter index
-    idx = c_index(t); 
+    % Identify active filter index (c_index(t+1) is the filter selected at step t)
+    idx = c_index(t+1); 
     
     % Extract state prediction and calculate estimated output
     x_hat(:, t) = filters(idx).x_pred(1:n, t);
