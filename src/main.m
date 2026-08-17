@@ -1,4 +1,5 @@
-addpath("utils/")
+clear;
+addpath("utils/");
 
 %% ----------------------- CONFIG -----------------------
 
