@@ -16,18 +16,18 @@ arguments
     MPC_config   (1,1) struct
 end
 
-% Unpack noise configuration
+% unpack noise configuration
 delta_process = noise_config.delta_process;
 delta_measure = noise_config.delta_measure;
 mustBeNonnegative(delta_process);
 mustBeNonnegative(delta_measure);
 
-% Unpack MPC configuration
+% unpack MPC configuration
 offset_free = MPC_config.offset_free;
 
+% generate .mat file with system matrices if not already present
 fileName = 'quadruple_tank.mat';
 if ~isfile(fileName)
-    disp('Model file not found. Generating quadruple tank model...');
     generate_quadruple_tank_model();
 end
 load(fileName, 'A', 'B', 'C', 'D', 'K');
@@ -42,31 +42,31 @@ n = size(model_sim.A, 1);
 m = size(model_sim.K, 2);
 p = size(model_sim.C, 1);
 
-%   init_con:   initial condition
+% set initial conditions
 init_con = [10; 10; 1; 1];
 
-% model_nom: matrices A,C,K are the same as the real model, matrices B,D
-% are respectively the process and measure gain matrices
-% Added 5% mismatch on A and 10% mismatch on K to highlight offset-free tracking
+% matrices A, C, and K include intentional mismatches to demonstrate the 
+% effectiveness of offset-free tracking. Matrices B and D define the 
+% process and measurement noise gains, respectively.
 model_nom.A = model_sim.A * 0.95;
 model_nom.B = [delta_process*eye(n), zeros(n, p)];
 model_nom.C = model_sim.C * 1.05;
 model_nom.D = [zeros(p, n), delta_measure*eye(p)];
 model_nom.K = model_sim.K * 1.1;
 
-% Build MPC bounds and weights from scalar config in MPC_config
-model_nom.u_min   = MPC_config.u_min * ones(m, 1);
-model_nom.u_max   = MPC_config.u_max * ones(m, 1);
-model_nom.x_min   = MPC_config.x_min * ones(n, 1);
-model_nom.x_max   = MPC_config.x_max * ones(n, 1);
+% build MPC bounds and weights from scalar config in MPC_config
+model_nom.u_min = MPC_config.u_min * ones(m, 1);
+model_nom.u_max = MPC_config.u_max * ones(m, 1);
+model_nom.x_min = MPC_config.x_min * ones(n, 1);
+model_nom.x_max = MPC_config.x_max * ones(n, 1);
 model_nom.weights.Q  = MPC_config.Q * eye(p);
 model_nom.weights.Pf = MPC_config.Pf * eye(p);
 model_nom.weights.R  = MPC_config.R * eye(m);
 
 % disturbances matrices for the offset-free tracking. Due to detectability
-% and the proprerty of offset-free tracking, the number of disturbances is
+% and the property of offset-free tracking, the number of disturbances is
 % equal to the number of tracked output (in our case, we try to track all
-% the outputs
+% the outputs)
 tmp_disturbances = (ones(n+p, p) + eye(n+p,p))/2;
 model_nom.Bd = tmp_disturbances(1:n,:);
 model_nom.Cd = tmp_disturbances(n+1:end,:) + eye(p);
@@ -95,6 +95,7 @@ assert(rank(Ob) == n, "Non-observable nominal model");
 assert(rank([model_sim.B; model_sim.D]) == n+p, "Non-Invertible noise covariance")
 assert(rank([model_nom.B; model_nom.D]) == n+p, "Non-Invertible noise covariance")
 
+% expand the matrices to allow for offset free tracking
 if offset_free
     model_nom.A = [model_nom.A model_nom.Bd; zeros(p, n) eye(p)];
     model_nom.K = [model_nom.K; zeros(p, m)];
