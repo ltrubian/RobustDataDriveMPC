@@ -1,4 +1,15 @@
 function [model_sim, model_nom, init_con] = model_config(noise_config, MPC_config)
+% MODEL_CONFIG Configures simulation and nominal state-space models for MPC.
+%
+% This function loads the quadruple tank base model and prepares:
+%   1. model_sim: The "real" plant model used for simulation.
+%   2. model_nom: The internal MPC model with intentional plant-model mismatches,
+%                 assigned constraints/weights, and optional disturbance state 
+%                 augmentation for offset-free tracking.
+%   3. init_con:  The initial state conditions.
+% 
+% The function also asserts system dimension validity, detectability of 
+% disturbances, controllability, observability, and invertibility of noise covariance.
 
 arguments
     noise_config (1,1) struct
