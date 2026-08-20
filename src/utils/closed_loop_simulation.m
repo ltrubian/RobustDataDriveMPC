@@ -1,6 +1,6 @@
 function [simX, simY, trueY, simU, cpuT, RKFs, c_best] = closed_loop_simulation(model_sim, model_nom, ...
     steps_sim, init_con, reference, set_c, measure_noise, process_noise, verbose, con_params)
-%closed_loop_simulation Simulate closed-loop system
+% CLOSED_LOOP_SIMULATION Simulate closed-loop system
 %
 %       <usage here>
 %

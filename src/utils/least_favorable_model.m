@@ -1,5 +1,5 @@
 function [A, B, C, D] = least_favorable_model(sys, V, c, N, NF)
-%%least_favorable_model compute least-favorable model N steps ahead
+% LEAST_FAVORABLE_MODEL compute least-favorable model N steps ahead
 %
 %   [A, B, C, D] = least_favorable_model(sys, V, c, N)
 %

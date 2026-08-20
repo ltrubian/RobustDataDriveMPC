@@ -3,6 +3,8 @@ addpath("utils/");
 
 %% ----------------------- CONFIG -----------------------
 
+% TODO consider intergrating osqp installation here
+
 % Enable terminal output during execution
 verbose = false;
 

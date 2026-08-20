@@ -1,3 +1,6 @@
+% PLOTTING Script to plot the results of the closed-loop simulation,
+% including control effort, output tracking, and estimation errors.
+
 %% REPORT AND ANALYSIS
 % OUTPUT OF THE SIMULATION:
 %   simX:       simulated states

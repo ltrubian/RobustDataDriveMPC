@@ -1,5 +1,5 @@
 function [u_opt, cost_opt] = mpc_solver(x0, A, K, C, weights, N, reference, x_min, x_max, u_min, u_max, options)
-%MPCOptimizer compute the solution of the MPC problem for linear case
+% MPC_SOLVER compute the solution of the MPC problem for linear case
 %
 %       <usage here>
 %

@@ -1,5 +1,5 @@
 function [x_pred, V_next, G, P_next, lambda] = robust_kalman_filter(sys, V, x, y, c)
-%%robust_kalman_filter one iteration
+% ROBUST_KALMAN_FILTER one iteration
 %
 %   [x_pred, V_next, G, P, lambda] = RobustKalmanFilter(sys, V, x_hat, y, c)
 %   compute one prediction ahead of the Kalman Filter
