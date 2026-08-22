@@ -3,7 +3,13 @@ addpath("utils/");
 
 %% ----------------------- CONFIG -----------------------
 
-% TODO consider intergrating osqp installation here
+% True : automatically installs osqp library and use as default solver
+% False: skip installation phase and use quadprog
+install_osqp_library = true;
+
+if install_osqp_library
+    install_osqp;
+end
 
 % Enable terminal output during execution
 verbose = false;
