@@ -78,8 +78,22 @@ m = size(model_sim.K,2);        % input real world
 p = size(model_sim.C,1);        % output real world
 r = size(model_nom.A,1) - n;    % fictitious disturbances (if introduced)
 
-% reference: reference signal
-reference = [ones(p, 10) * 10, ones(p, steps_sim-10) * 15];
+% reference: reference signal to track
+ref_type = "ramp"; % Options: "steps", "ramp", "sine"
+switch ref_type
+    case "steps"
+        reference = [ones(1, 10) * 10, ones(1, steps_sim-10) * 15;
+            ones(1, 10) * 10, ones(1, steps_sim-10) * 18];
+    case "ramp"
+        reference = [linspace(10, 20, steps_sim);
+            linspace(10, 15, steps_sim)];
+    case "sine"
+        t = 1:steps_sim;
+        reference = [10 + 2 * sin(2 * pi * t / 140);
+                     9.5 + 0.5 * cos(2 * pi * t / 130)];
+    otherwise
+        reference = [ones(p, 10) * 10, ones(p, steps_sim-10) * 15];
+end
 
 % update reference: last value is repeated so that the controller has enough preview
 reference = [reference, repmat(reference(:,end), 1, con_params.N)];
