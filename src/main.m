@@ -4,11 +4,16 @@ addpath("utils/");
 %% ----------------------- CONFIG -----------------------
 
 % True : automatically installs osqp library and use as default solver
-% False: skip installation phase and use quadprog
-install_osqp_library = true;
+% False: skip installation and use quadprog
+install_osqp_library = false;
 
 if install_osqp_library
-    install_osqp;
+    if ~exist('osqp', 'dir')
+        install_osqp;
+    else
+        % Add library folder to path for safety
+        addpath(genpath('osqp'));
+    end
 end
 
 % Enable terminal output during execution
