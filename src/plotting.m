@@ -139,9 +139,9 @@ for i = 1:p
     perc_out = (out_of_bounds / steps_sim) * 100;
     
     % Dynamic Title & Labels
-    title_str = sprintf('\\textbf{Output Error $e_%d$ (Out of bounds: %.1f\\%%)}', i, perc_out);
+    title_str = sprintf('\\textbf{Output Estimation Error $\\tilde{y}_%d$ (Out of bounds: %.1f\\%%)}', i, perc_out);
     title(title_str, latex_opt{:}, 'FontSize', fs_title);
-    ylabel(sprintf('$e_%d$', i), latex_opt{:}, 'FontSize', fs_label);
+    ylabel(sprintf('$\\tilde{y}_%d$', i), latex_opt{:}, 'FontSize', fs_label);
     if i == 1
         legend('Location', 'best', latex_opt{:});
     end
@@ -151,3 +151,30 @@ for i = 1:p
 end
 linkaxes(findobj(fig3, 'type', 'axes'), 'x');
 xlim(findobj(fig3, 'type', 'axes'), [1, steps_sim]);
+
+%% FIGURE 4: Tracking Error
+fig4 = figure('Name', 'Controller Validation: Tracking Error');
+tl4 = tiledlayout(p, 1, 'TileSpacing', 'compact', 'Padding', 'compact');
+for i = 1:p
+    ax = nexttile;
+    hold(ax, 'on'); grid(ax, 'on');
+    
+    c = colors(i, :);
+    plot(time_steps, err_track(i, :), '-', 'Color', c, 'LineWidth', lw, 'DisplayName', 'Tracking Error: $y_{ref} - y_{sim}$');
+    
+    yline(0, 'k-', 'HandleVisibility', 'off', 'LineWidth', 0.5);
+    
+    title_str = sprintf('\\textbf{Tracking Error $y_{ref,%d} - y_%d$}', i, i);
+    title(title_str, latex_opt{:}, 'FontSize', fs_title);
+    ylabel(sprintf('$e_{track,%d}$', i), latex_opt{:}, 'FontSize', fs_label);
+    
+    if i == 1
+        legend('Location', 'best', latex_opt{:});
+    end
+    if i == p
+        xlabel('Time Step $k$', latex_opt{:}, 'FontSize', fs_label);
+    end
+end
+linkaxes(findobj(fig4, 'type', 'axes'), 'x');
+xlim(findobj(fig4, 'type', 'axes'), [1, steps_sim]);
+
