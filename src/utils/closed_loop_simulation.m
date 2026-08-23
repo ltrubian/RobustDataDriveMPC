@@ -45,8 +45,8 @@ arguments
 end
 
 n = size(model_sim.A,1);        % state real world
-p = size(model_sim.C,1);        % input real world
-m = size(model_sim.K,2);        % output real world
+p = size(model_sim.C,1);        % output real world
+m = size(model_sim.K,2);        % input real world
 r = size(model_nom.A,1) - n;    % fictitious disturbances (if introduced)
 N = con_params.N;
 
