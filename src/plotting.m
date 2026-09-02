@@ -130,7 +130,7 @@ for i = 1:p
     
     % Plot True Error and 3-Sigma Bounds
     c = colors(i, :);
-    plot(time_steps, err_y(i, :), '-', 'Color', c, 'LineWidth', lw, 'DisplayName', 'Estimation Error');
+    plot(time_steps, err_y(i, :), '-', 'Color', c, 'LineWidth', lw, 'DisplayName', 'Estimation Error: $\hat y-y_{sim}$');
     plot(time_steps, sigma_3(i, :), 'r--', 'LineWidth', 1.2, 'DisplayName', '$\pm 3\sigma$ Bound');
     plot(time_steps, -sigma_3(i, :), 'r--', 'LineWidth', 1.2, 'HandleVisibility', 'off');
     
