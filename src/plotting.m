@@ -25,8 +25,8 @@ for t = time_steps
     idx = c_index(t+1); 
     
     % Extract state prediction and calculate estimated output
-    x_hat(:, t) = filters(idx).x_pred(1:n, t);
-    y_hat(:, t) = model_nom.C * filters(idx).x_pred(1:n+r, t);
+    x_hat(:, t) = filters(idx).x_pred(1:n, t+1);
+    y_hat(:, t) = model_nom.C * filters(idx).x_pred(1:n+r, t+1);
     
     % Extract parameter 'c' and set 0 to 1e-8 for semilogy plotting
     c_vals(t) = max(filters(idx).c, 1e-8);
