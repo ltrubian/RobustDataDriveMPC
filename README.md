@@ -34,7 +34,7 @@ $$J(x(k), \mathbf{u}_k, k) = \sum_{i=0}^{N-1} \left[ \|x(k+i)\|^2_{C^\top Q C} +
     Autom. Control*, vol. 58, pp. 682–695, Mar. 2013
 
 ## Methodology & Implementation
-
+A more detailed description of the whole project is in the [project overview](./docs/project_overview.pdf)
 ### Closed-loop block scheme
 ![General block scheme](./docs/general_block_scheme.png)
 
@@ -51,26 +51,6 @@ $$J(x(k), \mathbf{u}_k, k) = \sum_{i=0}^{N-1} \left[ \|x(k+i)\|^2_{C^\top Q C} +
 Execute the [install_osqp.m](./src/install_osqp.m) script 
 or set `install_osqp_library = true;` in [main.m](./src/main.m)
 to install the OSQP solver, which is faster than the default MATLAB one `quadprog` due to the MPC implemented in sparse formulation.
-
-
-
-## Results
-### Simulation / Experimental Setup [TODO]
-*Describe the parameters used (e.g., sampling time, initial conditions, input signals).*
-
-### Key Findings
-*Present the main outcomes. Use bullet points for clarity.*
-- **Stability:** The system is [stable/unstable] with a margin of...
-- **Performance:** Rise time = [X]s, Overshoot = [Y]%.
-- **Comparison:** Method A showed a [Z]% improvement over Method B in terms of...
-
-### Visualizations [TODO]
-*Embed your most important plots here.*
-*Figure 1: Step response of the closed-loop system.*
-
-## How to Reproduce [TODO]
-*Instructions for running your code or compiling your report. This is crucial for academic reproducibility.*
-
 
 ## License
 This project is submitted for academic purposes only.
