@@ -13,7 +13,7 @@ Associated to a Robust Kalman FIlter with a relative entropy tolerance applied t
 
 The analysis compared different strategies in the usage of the available information.
 
-## Theoretical Background [TODO]
+## Theoretical Background
 
 **Key Equations:**  State-space representation of a system
 
@@ -34,20 +34,25 @@ $$J(x(k), \mathbf{u}_k, k) = \sum_{i=0}^{N-1} \left[ \|x(k+i)\|^2_{C^\top Q C} +
     Autom. Control*, vol. 58, pp. 682–695, Mar. 2013
 
 ## Methodology & Implementation
-### System Architecture [TODO]
-*Describe the workflow. If applicable, include a block diagram (you can embed your TikZ image here or a link to it).*
+
+### Closed-loop block scheme
 ![General block scheme](./docs/general_block_scheme.png)
+
+### Algorithm Description 
+![High-level block diagram](./docs/high-level_block.png)
+
+### Software Architecture 
+![Software architecture](./docs/software_architecture.png)
 
 ### Tools & Dependencies
 - **Language:** MATLAB R2025b
 - **Libraries:** Control Systems Toolbox, Optimization Toolbox, OSQP (optional)
 
-### Algorithm Description [TODO]
-*Step-by-step logic of your implementation:*
-1. Data preprocessing / Model definition.
-2. Controller design / Simulation setup.
-3. Optimization / Solving process.
-4. Data analysis.
+Execute the [install_osqp.m](./src/install_osqp.m) script 
+or set `install_osqp_library = true;` in [main.m](./src/main.m)
+to install the OSQP solver, which is faster than the default MATLAB one `quadprog` due to the MPC implemented in sparse formulation.
+
+
 
 ## Results
 ### Simulation / Experimental Setup [TODO]
@@ -66,8 +71,6 @@ $$J(x(k), \mathbf{u}_k, k) = \sum_{i=0}^{N-1} \left[ \|x(k+i)\|^2_{C^\top Q C} +
 ## How to Reproduce [TODO]
 *Instructions for running your code or compiling your report. This is crucial for academic reproducibility.*
 
-### Prerequisites (optional)
-Execute the **./install_osqp.m** script to install the OSQP solver, which is faster than the default MATLAB one *quadprog*
 
 ## License
 This project is submitted for academic purposes only.
