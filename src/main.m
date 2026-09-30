@@ -1,73 +1,60 @@
-addpath("Controller/")
-addpath("RobustKalmanFilter/")
-addpath("LeastFavorableModel/")
-rng(1)
-verbose = true;
+clear;
+addpath("utils/");
 
-%% DEFINITION OF VARIABLES FOR THE SIMULATION
-% "DEBUG MODE": if True set all the noise/perturbation gains to 0
-% Use to check if the MPC controller works in ideal conditions
-debug = false;
-% model perturbation gain
-delta = 0.05;
-% offset_free: introduces fictitious constant disturbances in the nominal
-% model allowing the MPC to compensate for offset
-offset_free = true;
+%% ----------------------- CONFIG -----------------------
 
-[model_sim, model_nom, init_con] = models(2, delta, offset_free);
+% True : automatically installs osqp library and use as default solver
+% False: skip installation and use quadprog
+install_osqp_library = false;
 
-n = size(model_sim.A,1);        % state real world
-m = size(model_sim.K,2);        % input real world
-p = size(model_sim.C,1);        % output real world
-r = size(model_nom.A,1) - n;    % fictitious disturbances (if introduced)
-
-%   steps_sim:  number of step to simulate
-steps_sim = 100;
-
-%   reference:  reference signal
-reference = [zeros(p, 10), ones(p, steps_sim-10) * 5];
-
-%   set_c:      set of hyperparamter 'c' to choose from
-set_c = [0, logspace(-6, -1, 9)];
-
-% NAMED-VALUE INPUTS:
-%   con_params:
-%       N:      prediction horizon of MPC
-con_params.N = 20;
-% update reference: last value is repeated so that the controller has
-% always enough preview
-reference = [reference,repmat(reference(:,end),1,con_params.N)];
-%       L:      time windows toward the past for estimation
-con_params.L = 10;
-%       beta:   forgetting factor
-con_params.beta = 1;
-%       mpc:    which strategy to use the MPC
-%               RKF:     compute the RKF on the nominal model (just
-%                        starting point x0 is given to MPC)
-%               LFM:     the time-varying LFM is computed and used for the
-%                        prediction x0 (LFM model and x0 are given to MPC)
-choice = 2;
-switch choice
-    case 1
-        con_params.mpc = "RKF";
-    case 2
-        con_params.mpc = "LFM";
+if install_osqp_library
+    if ~exist('osqp', 'dir')
+        install_osqp;
+    else
+        % Add library folder to path for safety
+        addpath(genpath('osqp'));
+    end
 end
-%       c_selection: which V and x_pred the filters will use.
-%                    each filter uses
-%                    best: the best x_pred (and V) of previous round
-%                    own:  its own x_pred and V
-%       WARNING: in the RKF approach the "best" selection is useless since
-%                the dynamics of the whole algorithm will always goes for
-%                the first c of the list
-con_params.c_selec = "best";
-% con_params.c_selec = "own";
 
-con_params.options = optimoptions('quadprog', ...
-    'OptimalityTolerance', 1e-6, ...
-    'StepTolerance', 1e-6, ...
-    'ConstraintTolerance', 1e-6, ...
-    'Display', 'off');
+% Enable terminal output during execution
+verbose = false;
+
+% True and nominal models noises config
+noise_config = struct( ...
+    "measure_noise", true, ...  % enable measure noise in true model simulation
+    "process_noise", true, ...  % enable process noise in true model simulation
+    "delta_process", 0.05, ...  % nominal model noise matrices diagonal elements
+    "delta_measure", 0.05  ...  %   "
+);
+
+% MPC Controller configuration
+MPC_config = struct( ...
+    "offset_free", true, ...
+    "u_min",       0, ...
+    "u_max",       5, ...
+    "x_min",       0, ...
+    "x_max",       30, ...
+    "Q",           1, ...
+    "Pf",          1, ...
+    "R",           1 ...
+);
+% Note
+% offset_free: introduces fictitious constant disturbances in the nominal
+% model allowing the MPC to compensate for modelling errors
+
+% Algorithm-side configuration
+con_params = struct( ...
+    "N",        20, ...      % prediction horizon of MPC
+    "L",        10, ...      % time windows toward the past for estimation
+    "beta",     1, ...       % forgetting factor
+    "mpc",      "RKF", ...   % MPC strategy ("RKF" or "LFM")
+    "c_selec",  "own", ...   % filter selection mode ("best" or "own")
+    "options",  optimoptions('quadprog', ...
+                    'OptimalityTolerance', 1e-6, ...
+                    'StepTolerance', 1e-6, ...
+                    'ConstraintTolerance', 1e-6, ...
+                    'Display', 'off') ...
+);
 
 if exist("osqp","class")
     con_params.options = [];
@@ -75,10 +62,54 @@ else
     warning("consider installing osqp solver for faster execution")
 end
 
-%% SIMULATION OF THE WHOLE SYSTEM
-[simX, simY, trueY, simU, cpuT, filters, c_index] = LoopSimulation(model_sim, model_nom, ...
-    steps_sim, init_con, reference, set_c, debug, verbose, ...
+% steps_sim: number of step to simulate
+steps_sim = 200;
+
+% set_c: set of hyperparamter 'c' to choose from
+set_c = [0, logspace(-6, -1, 9)]';
+% set_c = [0, linspace(1e-6, 1e-1, 9)];
+
+% ----------------------- END-CONFIG -----------------------
+
+[model_sim, model_nom, init_con] = model_config(noise_config, MPC_config);
+
+n = size(model_sim.A,1);        % state real world
+m = size(model_sim.K,2);        % input real world
+p = size(model_sim.C,1);        % output real world
+r = size(model_nom.A,1) - n;    % fictitious disturbances (if introduced)
+
+% reference: reference signal to track
+ref_type = "ramp"; % Options: "steps", "ramp", "sine"
+switch ref_type
+    case "steps"
+        reference = [ones(1, 10) * 10, ones(1, steps_sim-10) * 15;
+            ones(1, 10) * 10, ones(1, steps_sim-10) * 18];
+    case "ramp"
+        reference = [linspace(10, 20, steps_sim);
+            linspace(10, 15, steps_sim)];
+    case "sine"
+        t = 1:steps_sim;
+        reference = [10 + 2 * sin(2 * pi * t / 140);
+                     9.5 + 0.5 * cos(2 * pi * t / 130)];
+    otherwise
+        reference = [ones(p, 10) * 10, ones(p, steps_sim-10) * 15];
+end
+
+% update reference: last value is repeated so that the controller has enough preview
+reference = [reference, repmat(reference(:,end), 1, con_params.N)];
+
+%% SIMULATION LOOP
+[simX, simY, trueY, simU, cpuT, filters, c_index] = closed_loop_simulation(model_sim, model_nom, ...
+    steps_sim, init_con, reference, set_c, noise_config.measure_noise, noise_config.process_noise, verbose, ...
     con_params);
 
+%% RECAP simulation params and controller strategy
+fprintf("=== simulaition params  ===\n")
+fprintf("process noise: %s\nmeasure noise: %s\ndelta process: %.2f\ndelta measure: %.2f\n", ...
+    string(noise_config.process_noise), string(noise_config.measure_noise), ...
+    noise_config.delta_process, noise_config.delta_measure)
+fprintf("=== controller strategy ===\n")
+fprintf("mpc strategy: %s\n c selection: %s\n offset-free: %s\n", ...
+    con_params.mpc, con_params.c_selec, string(MPC_config.offset_free))
 %% Plot and analysis
 plotting;

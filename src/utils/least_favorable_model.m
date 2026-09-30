@@ -1,9 +1,9 @@
-function [A, B, C, D] = LeastFavorableModel(sys, V, c, N, NF)
-%%LeastFavorableModel compute least-favorable model N steps ahead
+function [A, B, C, D] = least_favorable_model(sys, V, c, N, NF)
+% LEAST_FAVORABLE_MODEL compute least-favorable model N steps ahead
 %
-%   [A, B, C, D] = LeastFavorableModel(sys, V, c, N)
+%   [A, B, C, D] = least_favorable_model(sys, V, c, N)
 %
-%   [A, B, C, D] = LeastFavorableModel(sys, V, c, N, NF)
+%   [A, B, C, D] = least_favorable_model(sys, V, c, N, NF)
 %   if you need to control the length of the forward sweep NF (default= 2N)
 %
 % the state of returned system A, B, C, D is the extended state composed by
@@ -46,7 +46,7 @@ lambdas = zeros(1,NF);
 % forward sweep of risk-sensitive filter
 for t=1:(NF - 1)
     [Vs(:,:,t+1), ~, Gs(:,:,t), lambdas(1,t)] = ...
-        RiccatiIteration(sys, Vs(:,:,t), c);
+        riccati_iteration(sys, Vs(:,:,t), c);
 end
 
 % backward sweep to evaluate the matrices W, K, H, L

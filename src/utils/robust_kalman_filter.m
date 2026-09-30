@@ -1,6 +1,6 @@
-function [x_pred, V_next, G, P_next, lambda] = RobustKalmanFilter(sys, V, x, y, c)
-%RobustKalmanFilter one iteration
-% 
+function [x_pred, V_next, G, P_next, lambda] = robust_kalman_filter(sys, V, x, y, c)
+% ROBUST_KALMAN_FILTER one iteration
+%
 %   [x_pred, V_next, G, P, lambda] = RobustKalmanFilter(sys, V, x_hat, y, c)
 %   compute one prediction ahead of the Kalman Filter
 %
@@ -10,14 +10,14 @@ function [x_pred, V_next, G, P_next, lambda] = RobustKalmanFilter(sys, V, x, y, 
 %   x:      current state
 %   y:      current output
 %   c:      radius of the ambiguity set
+%
 % OUTPUT
-%   x_pred: prediction
+%   x_pred: one-step ahead state prediction
 %   V_next: next least-favorable conditional covariance matrix
+%   G:      kalman gain used for prediction
 %   P:      next nominal conditional covariance matrix
 %   lambda: current lagrangian multiplier
-% 
-% DEV-STATUS: The function has been tested: over 300 steps it maintains
-% a distance from the professor's version with an error of less than 1e-5
+
 arguments
     sys (1,1) struct
     V   (:,:) double
@@ -26,7 +26,7 @@ arguments
     c   (1,1) double {mustBeNonnegative(c)}
 end
 
-[V_next, P_next, G, lambda] = RiccatiIteration(sys, V, c);
+[V_next, P_next, G, lambda] = riccati_iteration(sys, V, c);
 
 x_pred = sys.A*x + G * (y - sys.C*x);
 

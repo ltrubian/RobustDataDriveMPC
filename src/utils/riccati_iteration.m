@@ -1,19 +1,21 @@
-function [V_next, P_next, G, lambda] = RiccatiIteration(sys, V, c)
-%RobustKalmanFilter one iteration
+function [V_next, P_next, G, lambda] = riccati_iteration(sys, V, c)
+% RICCATI_ITERATION Computes a single iteration of the robust Riccati equation.
 %
-%   [V_next, P_next, G, lambda] = RiccatiIteration(sys, V, c)
-%   compute one interation of the Riccati equation
+%   [V_next, P_next, G, lambda] = riccati_iteration(sys, V, c)
+%   Calculates the next least-favorable conditional covariance matrix and 
+%   filter gain given the current covariance and the ambiguity set radius.
 %
-% INPUT
-%   sys:    struct with fields A, B, C, D
-%   V:      least-favorable covariance matrix
-%   c:      radius of the ambiguity set
+% INPUTS:
+%   sys - State-space system structure containing A, B, C, D.
+%   V   - Current least-favorable covariance matrix.
+%   c   - Radius of the ambiguity set.
 %
-% OUTPUT
-%   V_next: next least-favorable conditional covariance matrix
-%   G:      filter gain
-%   P_next: next nominal conditional covariance matrix
-%   lambda: lagrange multiplier associated with V and c
+% OUTPUTS:
+%   V_next - Next least-favorable conditional covariance matrix.
+%   P_next - Next nominal conditional covariance matrix.
+%   G      - Optimal filter gain matrix.
+%   lambda - Lagrange multiplier associated with V and c, computed via 
+%            a modified Regula-Falsi root-finding method.
 
 arguments
     sys (1,1) struct
@@ -24,7 +26,7 @@ end
 G = (sys.A*V*sys.C' + sys.B*sys.D') / (sys.C*V*sys.C' + sys.D*sys.D');
 
 % nominal conditional covariance matrix
-P_next = (sys.A-G*sys.C)*V*(sys.A-G*sys.C)' + (sys.B-G*sys.D)*(sys.B-G*sys.D)';
+P_next = (sys.A-G*sys.C) * V * (sys.A-G*sys.C)' + (sys.B-G*sys.D) * (sys.B-G*sys.D)';
 
 % START: COMPUTATION OF LAMBDA
 % Lambda is the value such that
@@ -60,7 +62,7 @@ end
 % END: COMPUTATION OF LAMBDA
 
 % least-favorable covariance matrix
-V_next = ( eye(size(sys.A)) - P_next/lambda ) \ P_next;
+V_next = (eye(size(sys.A)) - P_next/lambda) \ P_next;
 
 % enforce symmetry and reduce numerical errors
 V_next = (V_next+V_next')/2;
